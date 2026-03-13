@@ -49,7 +49,7 @@ export function logDecision(
   try {
     ensureDir(config.logFile);
     const summary = summarizeInput(input);
-    const line = `[${timestamp()}] decision=${result.decision} confidence=${result.confidence.toFixed(2)} model=${result.model} latency=${result.latencyMs}ms tool=${input.tool_name} input="${summary}" reasoning="${result.reasoning}"\n`;
+    const line = `[${timestamp()}] decision=${result.decision} confidence=${result.confidence} model=${result.model} latency=${result.latencyMs}ms tool=${input.tool_name} input="${summary}" reasoning="${result.reasoning}"\n`;
     appendFileSync(config.logFile, line);
   } catch {
     // Never break the hook if logging fails

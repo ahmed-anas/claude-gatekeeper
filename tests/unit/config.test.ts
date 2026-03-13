@@ -42,17 +42,17 @@ describe('loadConfig', () => {
     expect(config.enabled).toBe(true);
     expect(config.backend).toBe('cli');
     expect(config.model).toBe('haiku');
-    expect(config.confidenceThreshold).toBe(0.85);
+    expect(config.confidenceThreshold).toBe('high');
   });
 
   it('merges user config with defaults', () => {
     mockReadFileSync.mockReturnValue(JSON.stringify({
-      confidenceThreshold: 0.9,
+      confidenceThreshold: 'absolute',
       model: 'sonnet',
     }));
 
     const config = loadConfig();
-    expect(config.confidenceThreshold).toBe(0.9);
+    expect(config.confidenceThreshold).toBe('absolute');
     expect(config.model).toBe('sonnet');
     expect(config.enabled).toBe(true); // default preserved
   });
@@ -66,10 +66,11 @@ describe('loadConfig', () => {
 });
 
 describe('mergeConfig', () => {
-  it('clamps confidenceThreshold to [0, 1]', () => {
-    expect(mergeConfig({ confidenceThreshold: -0.5 }).confidenceThreshold).toBe(0);
-    expect(mergeConfig({ confidenceThreshold: 1.5 }).confidenceThreshold).toBe(1);
-    expect(mergeConfig({ confidenceThreshold: 0.7 }).confidenceThreshold).toBe(0.7);
+  it('validates confidenceThreshold against allowed levels', () => {
+    expect(mergeConfig({ confidenceThreshold: 'medium' }).confidenceThreshold).toBe('medium');
+    expect(mergeConfig({ confidenceThreshold: 'absolute' }).confidenceThreshold).toBe('absolute');
+    expect(mergeConfig({ confidenceThreshold: 'invalid' as any }).confidenceThreshold).toBe('high'); // falls back to default
+    expect(mergeConfig({ confidenceThreshold: 0.85 as any }).confidenceThreshold).toBe('high'); // numeric rejected
   });
 
   it('clamps timeoutMs to [1000, 60000]', () => {

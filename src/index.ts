@@ -10,7 +10,7 @@
  */
 
 import { readFileSync } from 'fs';
-import { ApproverConfig, EvaluationResult, HookInput, HookOutput } from './types';
+import { ApproverConfig, EvaluationResult, HookInput, HookOutput, meetsThreshold } from './types';
 import { loadConfig } from './config';
 import { loadContext } from './context';
 import { buildPrompt } from './prompt';
@@ -83,7 +83,7 @@ export async function main(): Promise<void> {
       writeApproval();
       logDecision(input, {
         decision: 'approve',
-        confidence: 1.0,
+        confidence: 'absolute',
         reasoning: 'Matched always-approve pattern',
         model: 'static',
         latencyMs: 0,
@@ -94,7 +94,7 @@ export async function main(): Promise<void> {
     if (staticDecision === 'escalate') {
       logDecision(input, {
         decision: 'escalate',
-        confidence: 1.0,
+        confidence: 'absolute',
         reasoning: 'Matched always-escalate pattern',
         model: 'static',
         latencyMs: 0,
@@ -116,7 +116,7 @@ export async function main(): Promise<void> {
     logDecision(input, result, config);
 
     // Step 8: Apply confidence threshold
-    if (result.decision === 'approve' && result.confidence >= config.confidenceThreshold) {
+    if (result.decision === 'approve' && meetsThreshold(result.confidence, config.confidenceThreshold)) {
       writeApproval();
     } else {
       // Not confident enough or AI said escalate — show prompt to user

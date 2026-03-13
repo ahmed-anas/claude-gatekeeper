@@ -15,7 +15,7 @@ The config file is optional. All fields have sensible defaults.
   "enabled": true,
   "backend": "cli",
   "model": "haiku",
-  "confidenceThreshold": 0.85,
+  "confidenceThreshold": "high",
   "timeoutMs": 10000,
   "maxContextLength": 2000,
   "logFile": "~/.config/claude-ai-approver/decisions.log",
@@ -42,13 +42,16 @@ Model to use for evaluation:
 - CLI backend: passed as `--model` flag to `claude -p`
 - API backend: `"haiku"` maps to `claude-haiku-4-5-20251001`. Any other value is passed directly.
 
-### `confidenceThreshold` (number, default: `0.85`)
-Minimum confidence score (0.0–1.0) required from the AI to auto-approve. Lower values approve more aggressively, higher values are more conservative.
+### `confidenceThreshold` (string, default: `"high"`)
+Minimum confidence level required from the AI to auto-approve. The AI picks from five ordered levels; only responses at or above the threshold are auto-approved.
 
-- `0.7` — Approve most things the AI thinks are safe
-- `0.85` — Default, good balance
-- `0.95` — Very conservative, only approve when AI is very confident
-- `1.0` — Effectively disables AI approval (nothing can reach 1.0)
+| Level | Meaning | Use as threshold |
+|-------|---------|-----------------|
+| `"none"` | No basis for a judgment | Approve almost everything (not recommended) |
+| `"low"` | Slight lean but very uncertain | Very aggressive — most AI responses pass |
+| `"medium"` | Somewhat confident, notable uncertainty | Moderate — approve when AI has a reasonable read |
+| `"high"` | Confident with minor reservations | **Default** — good balance of safety and convenience |
+| `"absolute"` | No reasonable doubt | Very conservative — only approve when AI is certain |
 
 ### `timeoutMs` (number, default: `10000`)
 Maximum time in milliseconds to wait for AI evaluation. Clamped to [1000, 60000]. If the AI doesn't respond in time, the request is escalated to the user.
@@ -118,7 +121,7 @@ These are human-readable markdown files that the AI uses as additional context w
 ### Conservative (fewer auto-approvals)
 ```json
 {
-  "confidenceThreshold": 0.95,
+  "confidenceThreshold": "absolute",
   "timeoutMs": 5000
 }
 ```
@@ -126,7 +129,7 @@ These are human-readable markdown files that the AI uses as additional context w
 ### Aggressive (more auto-approvals)
 ```json
 {
-  "confidenceThreshold": 0.7,
+  "confidenceThreshold": "medium",
   "alwaysApprovePatterns": ["prettier *", "eslint *", "tsc *"]
 }
 ```

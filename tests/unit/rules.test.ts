@@ -5,7 +5,7 @@ const baseConfig: ApproverConfig = {
   enabled: true,
   backend: 'cli',
   model: 'haiku',
-  confidenceThreshold: 0.85,
+  confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
   logFile: '/tmp/test.log',

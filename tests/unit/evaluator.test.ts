@@ -25,7 +25,7 @@ const baseConfig: ApproverConfig = {
   enabled: true,
   backend: 'cli',
   model: 'haiku',
-  confidenceThreshold: 0.85,
+  confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
   logFile: '/tmp/test.log',
@@ -67,49 +67,49 @@ function createMockProcess(opts: {
 
 describe('parseAiResponse', () => {
   it('parses valid JSON approve response', () => {
-    const result = parseAiResponse('{"decision": "approve", "confidence": 0.95, "reasoning": "Safe command"}');
+    const result = parseAiResponse('{"decision": "approve", "confidence": "high", "reasoning": "Safe command"}');
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.95);
+    expect(result.confidence).toBe('high');
     expect(result.reasoning).toBe('Safe command');
   });
 
   it('parses valid JSON escalate response', () => {
-    const result = parseAiResponse('{"decision": "escalate", "confidence": 0.9, "reasoning": "Dangerous"}');
+    const result = parseAiResponse('{"decision": "escalate", "confidence": "absolute", "reasoning": "Dangerous"}');
     expect(result.decision).toBe('escalate');
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe('absolute');
   });
 
-  it('clamps confidence to [0, 1]', () => {
-    expect(parseAiResponse('{"decision": "approve", "confidence": 1.5, "reasoning": "x"}').confidence).toBe(1);
-    expect(parseAiResponse('{"decision": "approve", "confidence": -0.3, "reasoning": "x"}').confidence).toBe(0);
+  it('defaults invalid confidence to low', () => {
+    expect(parseAiResponse('{"decision": "approve", "confidence": "banana", "reasoning": "x"}').confidence).toBe('low');
+    expect(parseAiResponse('{"decision": "approve", "confidence": 0.95, "reasoning": "x"}').confidence).toBe('low');
   });
 
-  it('defaults confidence to 0.5 when missing', () => {
+  it('defaults confidence to low when missing', () => {
     const result = parseAiResponse('{"decision": "approve", "reasoning": "test"}');
-    expect(result.confidence).toBe(0.5);
+    expect(result.confidence).toBe('low');
   });
 
   it('handles JSON embedded in text', () => {
-    const result = parseAiResponse('Here is my analysis:\n{"decision": "approve", "confidence": 0.9, "reasoning": "OK"}\nDone.');
+    const result = parseAiResponse('Here is my analysis:\n{"decision": "approve", "confidence": "high", "reasoning": "OK"}\nDone.');
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.9);
+    expect(result.confidence).toBe('high');
   });
 
   it('handles invalid decision value in JSON (falls through to keywords)', () => {
-    const result = parseAiResponse('{"decision": "maybe", "confidence": 0.9}');
+    const result = parseAiResponse('{"decision": "maybe", "confidence": "high"}');
     expect(result.decision).toBe('escalate'); // "maybe" is not valid, no approve keyword
   });
 
   it('handles malformed JSON that matches regex but fails parse', () => {
     const result = parseAiResponse('{"decision": approve}'); // missing quotes
     expect(result.decision).toBe('approve'); // falls back to keyword matching
-    expect(result.confidence).toBe(0.5);
+    expect(result.confidence).toBe('low');
   });
 
   it('falls back to keyword matching — approve', () => {
     const result = parseAiResponse('I would approve this command as it is safe.');
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.5);
+    expect(result.confidence).toBe('low');
   });
 
   it('falls back to keyword matching — escalate wins over approve', () => {
@@ -131,6 +131,13 @@ describe('parseAiResponse', () => {
     const result = parseAiResponse('{"decision": "approve"}');
     expect(result.reasoning).toBe('No reasoning provided');
   });
+
+  it('accepts all valid confidence levels', () => {
+    for (const level of ['none', 'low', 'medium', 'high', 'absolute']) {
+      const result = parseAiResponse(`{"decision": "approve", "confidence": "${level}", "reasoning": "test"}`);
+      expect(result.confidence).toBe(level);
+    }
+  });
 });
 
 // --- evaluateWithCli ---
@@ -138,25 +145,25 @@ describe('parseAiResponse', () => {
 describe('evaluateWithCli', () => {
   it('returns approve for successful AI response', async () => {
     const jsonOut = JSON.stringify({
-      result: '{"decision": "approve", "confidence": 0.95, "reasoning": "Safe"}',
+      result: '{"decision": "approve", "confidence": "high", "reasoning": "Safe"}',
     });
     mockSpawn.mockReturnValue(createMockProcess({ stdout: jsonOut }));
 
     const result = await evaluateWithCli('system', 'user', baseConfig);
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.95);
+    expect(result.confidence).toBe('high');
     expect(result.model).toBe('cli:haiku');
     expect(result.latencyMs).toBeGreaterThanOrEqual(0);
   });
 
   it('falls back to raw stdout parsing when JSON outer parse fails', async () => {
     // stdout is not valid JSON wrapper, but contains AI response directly
-    const rawResponse = '{"decision": "approve", "confidence": 0.88, "reasoning": "Looks safe"}';
+    const rawResponse = '{"decision": "approve", "confidence": "absolute", "reasoning": "Looks safe"}';
     mockSpawn.mockReturnValue(createMockProcess({ stdout: rawResponse }));
 
     const result = await evaluateWithCli('system', 'user', baseConfig);
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.88);
+    expect(result.confidence).toBe('absolute');
   });
 
   it('returns escalate when CLI exits with non-zero code', async () => {
@@ -164,7 +171,7 @@ describe('evaluateWithCli', () => {
 
     const result = await evaluateWithCli('system', 'user', baseConfig);
     expect(result.decision).toBe('escalate');
-    expect(result.confidence).toBe(0);
+    expect(result.confidence).toBe('none');
     expect(result.reasoning).toContain('auth error');
   });
 
@@ -193,7 +200,7 @@ describe('evaluateWithCli', () => {
   }, 15000);
 
   it('writes the prompt to stdin and closes it', async () => {
-    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": 0.9, "reasoning": "test"}' });
+    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": "high", "reasoning": "test"}' });
     const proc = createMockProcess({ stdout: jsonOut });
     mockSpawn.mockReturnValue(proc);
 
@@ -204,7 +211,7 @@ describe('evaluateWithCli', () => {
   });
 
   it('spawns claude with correct arguments', async () => {
-    const jsonOut = JSON.stringify({ result: '{"decision": "escalate"}' });
+    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": "high"}' });
     mockSpawn.mockReturnValue(createMockProcess({ stdout: jsonOut }));
 
     await evaluateWithCli('sys', 'usr', { ...baseConfig, model: 'sonnet' });
@@ -228,20 +235,20 @@ describe('evaluateWithApi', () => {
     Anthropic.mockImplementation(() => ({
       messages: {
         create: jest.fn().mockResolvedValue({
-          content: [{ type: 'text', text: '{"decision": "approve", "confidence": 0.92, "reasoning": "Safe npm command"}' }],
+          content: [{ type: 'text', text: '{"decision": "approve", "confidence": "high", "reasoning": "Safe npm command"}' }],
         }),
       },
     }));
 
     const result = await evaluateWithApi('system', 'user', baseConfig);
     expect(result.decision).toBe('approve');
-    expect(result.confidence).toBe(0.92);
+    expect(result.confidence).toBe('high');
     expect(result.model).toBe('api:haiku');
   });
 
   it('maps "haiku" model name to full model ID', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
-      content: [{ type: 'text', text: '{"decision": "escalate", "confidence": 0.9, "reasoning": "test"}' }],
+      content: [{ type: 'text', text: '{"decision": "escalate", "confidence": "high", "reasoning": "test"}' }],
     });
     const Anthropic = require('@anthropic-ai/sdk').default;
     Anthropic.mockImplementation(() => ({ messages: { create: mockCreate } }));
@@ -256,7 +263,7 @@ describe('evaluateWithApi', () => {
 
   it('passes custom model name directly', async () => {
     const mockCreate = jest.fn().mockResolvedValue({
-      content: [{ type: 'text', text: '{"decision": "escalate", "confidence": 0.9, "reasoning": "test"}' }],
+      content: [{ type: 'text', text: '{"decision": "escalate", "confidence": "high", "reasoning": "test"}' }],
     });
     const Anthropic = require('@anthropic-ai/sdk').default;
     Anthropic.mockImplementation(() => ({ messages: { create: mockCreate } }));
@@ -303,7 +310,7 @@ describe('evaluateWithApi', () => {
         create: jest.fn().mockResolvedValue({
           content: [
             { type: 'thinking', thinking: 'hmm' },
-            { type: 'text', text: '{"decision": "approve", "confidence": 0.9, "reasoning": "safe"}' },
+            { type: 'text', text: '{"decision": "approve", "confidence": "high", "reasoning": "safe"}' },
           ],
         }),
       },
@@ -324,7 +331,7 @@ describe('evaluate()', () => {
   });
 
   it('uses CLI backend by default', async () => {
-    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": 0.9, "reasoning": "test"}' });
+    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": "high", "reasoning": "test"}' });
     mockSpawn.mockReturnValue(createMockProcess({ stdout: jsonOut }));
 
     const result = await evaluate('sys', 'usr', { ...baseConfig, backend: 'cli' });
@@ -334,7 +341,7 @@ describe('evaluate()', () => {
 
   it('falls back to CLI when api backend lacks API key', async () => {
     process.env = { ...originalEnv, ANTHROPIC_API_KEY: '' };
-    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": 0.9, "reasoning": "test"}' });
+    const jsonOut = JSON.stringify({ result: '{"decision": "escalate", "confidence": "high", "reasoning": "test"}' });
     mockSpawn.mockReturnValue(createMockProcess({ stdout: jsonOut }));
 
     const result = await evaluate('sys', 'usr', { ...baseConfig, backend: 'api' });
@@ -347,7 +354,7 @@ describe('evaluate()', () => {
     Anthropic.mockImplementation(() => ({
       messages: {
         create: jest.fn().mockResolvedValue({
-          content: [{ type: 'text', text: '{"decision": "approve", "confidence": 0.95, "reasoning": "safe"}' }],
+          content: [{ type: 'text', text: '{"decision": "approve", "confidence": "high", "reasoning": "safe"}' }],
         }),
       },
     }));

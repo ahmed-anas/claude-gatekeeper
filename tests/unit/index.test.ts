@@ -50,7 +50,7 @@ const defaultConfig: ApproverConfig = {
   enabled: true,
   backend: 'cli',
   model: 'haiku',
-  confidenceThreshold: 0.85,
+  confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
   logFile: '/tmp/test.log',
@@ -94,7 +94,7 @@ describe('main()', () => {
   it('auto-approves when AI returns approve with high confidence', async () => {
     mockEvaluate.mockResolvedValue({
       decision: 'approve',
-      confidence: 0.95,
+      confidence: 'high',
       reasoning: 'Safe dev command',
       model: 'cli:haiku',
       latencyMs: 1000,
@@ -139,7 +139,7 @@ describe('main()', () => {
   it('escalates when AI confidence is below threshold', async () => {
     mockEvaluate.mockResolvedValue({
       decision: 'approve',
-      confidence: 0.5, // below 0.85 threshold
+      confidence: 'medium', // below 'high' threshold
       reasoning: 'Uncertain',
       model: 'cli:haiku',
       latencyMs: 1000,
@@ -155,7 +155,7 @@ describe('main()', () => {
   it('escalates when AI returns escalate decision', async () => {
     mockEvaluate.mockResolvedValue({
       decision: 'escalate',
-      confidence: 0.9,
+      confidence: 'high',
       reasoning: 'Looks dangerous',
       model: 'cli:haiku',
       latencyMs: 1000,
@@ -261,7 +261,7 @@ describe('main()', () => {
   it('passes correct context through the pipeline', async () => {
     mockEvaluate.mockResolvedValue({
       decision: 'approve',
-      confidence: 0.95,
+      confidence: 'high',
       reasoning: 'Safe',
       model: 'cli:haiku',
       latencyMs: 500,

@@ -12,13 +12,13 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { ApproverConfig } from './types';
+import { ApproverConfig, CONFIDENCE_LEVELS, ConfidenceLevel } from './types';
 
 const DEFAULT_CONFIG: ApproverConfig = {
   enabled: true,
   backend: 'cli',
   model: 'haiku',
-  confidenceThreshold: 0.85,
+  confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
   logFile: join(homedir(), '.config', 'claude-ai-approver', 'decisions.log'),
@@ -82,9 +82,10 @@ export function loadConfig(): ApproverConfig {
 export function mergeConfig(userConfig: Partial<ApproverConfig>): ApproverConfig {
   const merged: ApproverConfig = { ...DEFAULT_CONFIG, ...userConfig };
 
-  // Validate and clamp values
-  if (merged.confidenceThreshold < 0) merged.confidenceThreshold = 0;
-  if (merged.confidenceThreshold > 1) merged.confidenceThreshold = 1;
+  // Validate confidence threshold
+  if (!CONFIDENCE_LEVELS.includes(merged.confidenceThreshold as ConfidenceLevel)) {
+    merged.confidenceThreshold = DEFAULT_CONFIG.confidenceThreshold;
+  }
   if (merged.timeoutMs < 1000) merged.timeoutMs = 1000;
   if (merged.timeoutMs > 60000) merged.timeoutMs = 60000;
   if (merged.maxContextLength < 0) merged.maxContextLength = 0;

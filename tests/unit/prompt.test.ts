@@ -25,6 +25,12 @@ describe('SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('NEVER deny');
     expect(SYSTEM_PROMPT).toContain('JSON');
   });
+
+  it('documents all confidence levels in the response format', () => {
+    for (const level of ['none', 'low', 'medium', 'high', 'absolute']) {
+      expect(SYSTEM_PROMPT).toContain(`"${level}"`);
+    }
+  });
 });
 
 describe('summarizePermissions', () => {

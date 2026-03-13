@@ -18,7 +18,15 @@
  */
 
 import { spawn } from 'child_process';
-import { ApproverConfig, EvaluationResult } from './types';
+import { ApproverConfig, CONFIDENCE_LEVELS, ConfidenceLevel, EvaluationResult } from './types';
+
+/** Validate and normalize a confidence value from AI response. */
+function parseConfidence(value: unknown): ConfidenceLevel {
+  if (typeof value === 'string' && CONFIDENCE_LEVELS.includes(value as ConfidenceLevel)) {
+    return value as ConfidenceLevel;
+  }
+  return 'low';
+}
 
 /** Parse a decision from AI response text. */
 export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision' | 'confidence' | 'reasoning'> {
@@ -30,7 +38,7 @@ export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision'
       if (parsed.decision === 'approve' || parsed.decision === 'escalate') {
         return {
           decision: parsed.decision,
-          confidence: typeof parsed.confidence === 'number' ? Math.min(1, Math.max(0, parsed.confidence)) : 0.5,
+          confidence: parseConfidence(parsed.confidence),
           reasoning: String(parsed.reasoning || 'No reasoning provided'),
         };
       }
@@ -42,11 +50,11 @@ export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision'
   // Fallback: keyword matching
   const lower = text.toLowerCase();
   if (lower.includes('approve') && !lower.includes('escalate')) {
-    return { decision: 'approve', confidence: 0.5, reasoning: text.slice(0, 200) };
+    return { decision: 'approve', confidence: 'low', reasoning: text.slice(0, 200) };
   }
 
   // Default to escalate (safe fallback)
-  return { decision: 'escalate', confidence: 0.5, reasoning: text.slice(0, 200) };
+  return { decision: 'escalate', confidence: 'low', reasoning: text.slice(0, 200) };
 }
 
 /** Evaluate using `claude -p` CLI (default backend, no API key needed). */
@@ -81,7 +89,7 @@ export async function evaluateWithCli(
       proc.kill('SIGTERM');
       resolve({
         decision: 'escalate',
-        confidence: 0,
+        confidence: 'none',
         reasoning: 'AI evaluation timed out',
         model: `cli:${config.model}`,
         latencyMs: Date.now() - startTime,
@@ -95,7 +103,7 @@ export async function evaluateWithCli(
       if (code !== 0) {
         resolve({
           decision: 'escalate',
-          confidence: 0,
+          confidence: 'none',
           reasoning: `CLI exited with code ${code}: ${stderr.slice(0, 200)}`,
           model: `cli:${config.model}`,
           latencyMs,
@@ -120,7 +128,7 @@ export async function evaluateWithCli(
       clearTimeout(timer);
       resolve({
         decision: 'escalate',
-        confidence: 0,
+        confidence: 'none',
         reasoning: `CLI spawn error: ${err.message}`,
         model: `cli:${config.model}`,
         latencyMs: Date.now() - startTime,
@@ -172,7 +180,7 @@ export async function evaluateWithApi(
   } catch (err) {
     return {
       decision: 'escalate',
-      confidence: 0,
+      confidence: 'none',
       reasoning: `API error: ${err instanceof Error ? err.message : String(err)}`,
       model: `api:${config.model}`,
       latencyMs: Date.now() - startTime,

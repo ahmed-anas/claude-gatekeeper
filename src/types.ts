@@ -1,3 +1,15 @@
+/**
+ * Ordinal confidence levels for AI decisions (ordered low → high).
+ * Used instead of numeric scores so the AI picks from a clear, bounded set.
+ */
+export const CONFIDENCE_LEVELS = ['none', 'low', 'medium', 'high', 'absolute'] as const;
+export type ConfidenceLevel = (typeof CONFIDENCE_LEVELS)[number];
+
+/** Returns true if `level` is at or above `threshold` in the ordinal ranking. */
+export function meetsThreshold(level: ConfidenceLevel, threshold: ConfidenceLevel): boolean {
+  return CONFIDENCE_LEVELS.indexOf(level) >= CONFIDENCE_LEVELS.indexOf(threshold);
+}
+
 /** JSON structure received on stdin from Claude Code's PermissionRequest hook. */
 export interface HookInput {
   session_id: string;
@@ -23,7 +35,7 @@ export interface HookOutput {
 /** AI evaluation result. */
 export interface EvaluationResult {
   decision: 'approve' | 'escalate';
-  confidence: number;
+  confidence: ConfidenceLevel;
   reasoning: string;
   model: string;
   latencyMs: number;
@@ -34,7 +46,7 @@ export interface ApproverConfig {
   enabled: boolean;
   backend: 'cli' | 'api';
   model: string;
-  confidenceThreshold: number;
+  confidenceThreshold: ConfidenceLevel;
   timeoutMs: number;
   maxContextLength: number;
   logFile: string;

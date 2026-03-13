@@ -11,7 +11,7 @@ const baseConfig: ApproverConfig = {
   enabled: true,
   backend: 'cli',
   model: 'haiku',
-  confidenceThreshold: 0.85,
+  confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
   logFile: '/tmp/test-decisions.log',
@@ -30,7 +30,7 @@ const baseInput: HookInput = {
 
 const baseResult: EvaluationResult = {
   decision: 'approve',
-  confidence: 0.95,
+  confidence: 'high',
   reasoning: 'Safe dev command',
   model: 'cli:haiku',
   latencyMs: 1200,
@@ -48,7 +48,7 @@ describe('logDecision', () => {
     expect(mockAppendFileSync).toHaveBeenCalledTimes(1);
     const logLine = mockAppendFileSync.mock.calls[0][1] as string;
     expect(logLine).toContain('decision=approve');
-    expect(logLine).toContain('confidence=0.95');
+    expect(logLine).toContain('confidence=high');
     expect(logLine).toContain('model=cli:haiku');
     expect(logLine).toContain('tool=Bash');
     expect(logLine).toContain('npm test');

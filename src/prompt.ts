@@ -55,7 +55,14 @@ ESCALATE (pass to user) if the command/operation:
 
 ## Response Format
 Respond with ONLY a JSON object (no markdown, no code fences, no extra text):
-{"decision": "approve" or "escalate", "confidence": <float 0.0 to 1.0>, "reasoning": "<one sentence explaining your decision>"}`;
+{"decision": "approve" or "escalate", "confidence": "none" | "low" | "medium" | "high" | "absolute", "reasoning": "<one sentence explaining your decision>"}
+
+Confidence levels (pick exactly one):
+- "none" — No basis for a judgment
+- "low" — Slight lean but very uncertain
+- "medium" — Somewhat confident but notable uncertainty remains
+- "high" — Confident in the assessment with minor reservations
+- "absolute" — No reasonable doubt about the correct decision`;
 
 /** Summarize permission rules for inclusion in the prompt. */
 function summarizePermissions(
