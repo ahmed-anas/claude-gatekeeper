@@ -1,0 +1,11 @@
+{
+  "session_id": "fixture-session-7",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "WebFetch",
+  "tool_input": {
+    "url": "https://api.github.com/repos/anthropics/claude-code",
+    "prompt": "Get repo info"
+  },
+  "permission_mode": "default"
+}

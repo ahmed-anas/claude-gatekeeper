@@ -1,0 +1,11 @@
+{
+  "session_id": "fixture-session-6",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/etc/passwd",
+    "content": "malicious content"
+  },
+  "permission_mode": "default"
+}

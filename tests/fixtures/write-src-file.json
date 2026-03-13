@@ -1,0 +1,11 @@
+{
+  "session_id": "fixture-session-5",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/home/user/project/src/index.ts",
+    "content": "console.log('hello');"
+  },
+  "permission_mode": "default"
+}
