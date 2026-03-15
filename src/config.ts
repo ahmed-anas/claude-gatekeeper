@@ -61,9 +61,9 @@ export function resolvePath(filePath: string): string {
   return filePath;
 }
 
-/** Get the config file path. */
+/** Get the config file path. Supports CLAUDE_AI_APPROVER_CONFIG env override. */
 export function getConfigPath(): string {
-  return join(homedir(), '.config', 'claude-ai-approver', 'config.json');
+  return process.env.CLAUDE_AI_APPROVER_CONFIG || join(homedir(), '.config', 'claude-ai-approver', 'config.json');
 }
 
 /** Load configuration, merging user overrides with defaults. */

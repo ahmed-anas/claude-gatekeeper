@@ -12,6 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:e2e": "jest --testPathPattern=e2e",
+    "test:live": "jest tests/e2e/live.test.ts --no-coverage --testPathIgnorePatterns='[]'",
     "test:coverage": "jest --coverage",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",
