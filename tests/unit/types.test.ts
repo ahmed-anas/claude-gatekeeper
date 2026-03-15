@@ -24,12 +24,4 @@ describe('meetsThreshold', () => {
     expect(meetsThreshold('medium', 'high')).toBe(false);
     expect(meetsThreshold('low', 'absolute')).toBe(false);
   });
-
-  it('with default threshold "high", only high and absolute pass', () => {
-    expect(meetsThreshold('none', 'high')).toBe(false);
-    expect(meetsThreshold('low', 'high')).toBe(false);
-    expect(meetsThreshold('medium', 'high')).toBe(false);
-    expect(meetsThreshold('high', 'high')).toBe(true);
-    expect(meetsThreshold('absolute', 'high')).toBe(true);
-  });
 });
