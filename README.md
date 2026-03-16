@@ -139,9 +139,9 @@ Create an `APPROVAL_POLICY.md` in your project root (or `.claude/APPROVAL_POLICY
 ## Testing
 
 ```bash
-nvm exec npm test              # Unit + e2e tests (fake Claude CLI)
-nvm exec npm run test:e2e      # E2E tests only
-nvm exec npm run test:live     # Live tests with real Claude CLI (costs ~$0.001/test)
+nvm exec npm test              # Unit + integration tests
+nvm exec npm run test:integration  # Integration tests only (fake Claude CLI)
+nvm exec npm run test:e2e      # E2E tests with real Claude CLI (costs ~$0.001/test)
 nvm exec npm run test:coverage # With coverage report
 ```
 
