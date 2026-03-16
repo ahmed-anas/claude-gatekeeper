@@ -6,27 +6,13 @@
  * global APPROVAL_POLICY.md template to ~/.claude/.
  */
 
-import { createInterface } from 'readline';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
+import { ask, closePrompt } from './prompt-utils';
 
 const HOOK_TIMEOUT = 15000;
-
-/** Ask a yes/no question. Returns true for yes. */
-function ask(question: string, defaultYes = false): Promise<boolean> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const hint = defaultYes ? '[Y/n]' : '[y/N]';
-  return new Promise((res) => {
-    rl.question(`${question} ${hint}: `, (answer) => {
-      rl.close();
-      const a = answer.trim().toLowerCase();
-      if (a === '') return res(defaultYes);
-      res(a === 'y' || a === 'yes');
-    });
-  });
-}
 
 /** Resolve the absolute path to the bin/gatekeeper script. */
 function getBinPath(): string {
@@ -196,6 +182,7 @@ export async function setup(): Promise<void> {
   console.log('       Tip: add a per-project override with <project>/APPROVAL_POLICY.md');
 
   // 5. Done
+  closePrompt();
   console.log('\n---');
   console.log('Setup complete! Start a new Claude Code session to activate.');
   console.log('Run `claude-gatekeeper status` to verify.\n');

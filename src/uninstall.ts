@@ -6,25 +6,11 @@
  * approval policy).
  */
 
-import { createInterface } from 'readline';
-import { existsSync, readFileSync, rmSync } from 'fs';
+import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { readJson, writeJson } from './setup';
-
-/** Ask a yes/no question. Returns true for yes. */
-function ask(question: string, defaultYes = false): Promise<boolean> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const hint = defaultYes ? '[Y/n]' : '[y/N]';
-  return new Promise((res) => {
-    rl.question(`${question} ${hint}: `, (answer) => {
-      rl.close();
-      const a = answer.trim().toLowerCase();
-      if (a === '') return res(defaultYes);
-      res(a === 'y' || a === 'yes');
-    });
-  });
-}
+import { ask, closePrompt } from './prompt-utils';
 
 /** Remove the gatekeeper hook from ~/.claude/settings.json. */
 function removeHook(): boolean {
@@ -87,5 +73,6 @@ export async function uninstall(): Promise<void> {
   console.log('        Remove them manually if no longer needed.\n');
 
   // 4. Done
+  closePrompt();
   console.log('To fully remove, also run: npm uninstall -g claude-gatekeeper\n');
 }

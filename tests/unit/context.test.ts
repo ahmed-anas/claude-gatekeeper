@@ -148,6 +148,60 @@ describe('loadContext', () => {
     expect(context.claudeMd!.endsWith('...')).toBe(true);
   });
 
+  it('loads both global and project approval policies', () => {
+    const fileMap: Record<string, string> = {
+      '/home/testuser/.claude/claude-gatekeeper/APPROVAL_POLICY.md': '# Global policy',
+      '/project/APPROVAL_POLICY.md': '# Project policy',
+    };
+
+    mockReadFileSync.mockImplementation((path: any) => {
+      const content = fileMap[String(path)];
+      if (content) return content;
+      throw new Error('ENOENT');
+    });
+
+    const config = {
+      enabled: true,
+      backend: 'cli' as const,
+      model: 'haiku',
+      confidenceThreshold: 'high' as const,
+      timeoutMs: 10000,
+      maxContextLength: 2000,
+      logFile: '/tmp/test.log',
+      logLevel: 'info' as const,
+      alwaysEscalatePatterns: [],
+      alwaysApprovePatterns: [],
+    };
+
+    const context = loadContext('/project', config);
+    expect(context.globalApprovalPolicy).toBe('# Global policy');
+    expect(context.projectApprovalPolicy).toBe('# Project policy');
+  });
+
+  it('loads global policy when no project policy exists', () => {
+    mockReadFileSync.mockImplementation((path: any) => {
+      if (String(path) === '/home/testuser/.claude/claude-gatekeeper/APPROVAL_POLICY.md') return '# Global only';
+      throw new Error('ENOENT');
+    });
+
+    const config = {
+      enabled: true,
+      backend: 'cli' as const,
+      model: 'haiku',
+      confidenceThreshold: 'high' as const,
+      timeoutMs: 10000,
+      maxContextLength: 2000,
+      logFile: '/tmp/test.log',
+      logLevel: 'info' as const,
+      alwaysEscalatePatterns: [],
+      alwaysApprovePatterns: [],
+    };
+
+    const context = loadContext('/project', config);
+    expect(context.globalApprovalPolicy).toBe('# Global only');
+    expect(context.projectApprovalPolicy).toBeNull();
+  });
+
   it('falls back to .claude/APPROVAL_POLICY.md', () => {
     mockReadFileSync.mockImplementation((path: any) => {
       if (String(path) === '/project/.claude/APPROVAL_POLICY.md') return '# Fallback policy';
