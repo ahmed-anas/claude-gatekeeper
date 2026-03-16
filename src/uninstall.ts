@@ -9,10 +9,9 @@
 import { existsSync, rmSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { readJson, writeJson } from './setup';
-import { ask, closePrompt } from './prompt-utils';
+import { readJson, writeJson } from './fs-utils';
+import { ask, closePrompt } from './cli-prompt';
 
-/** Remove the gatekeeper hook from ~/.claude/settings.json. */
 function removeHook(): boolean {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   const settings = readJson(settingsPath);
@@ -48,7 +47,6 @@ export async function uninstall(): Promise<void> {
   console.log('\nClaude Gatekeeper Uninstall');
   console.log('==========================\n');
 
-  // 1. Remove hook
   const removed = removeHook();
   if (removed) {
     console.log('  [ok] Hook removed from ~/.claude/settings.json');
@@ -56,7 +54,6 @@ export async function uninstall(): Promise<void> {
     console.log('  [--] Hook not found in ~/.claude/settings.json (already removed)');
   }
 
-  // 2. Optionally delete config directory
   const configDir = join(homedir(), '.claude', 'claude-gatekeeper');
   if (existsSync(configDir)) {
     const wantDelete = await ask('\nDelete ~/.claude/claude-gatekeeper/ (config, logs, approval policy)?');
@@ -68,11 +65,9 @@ export async function uninstall(): Promise<void> {
     }
   }
 
-  // 3. Warning about per-project files
   console.log('\n  NOTE: Any per-project APPROVAL_POLICY.md files were NOT removed.');
   console.log('        Remove them manually if no longer needed.\n');
 
-  // 4. Done
   closePrompt();
   console.log('To fully remove, also run: npm uninstall -g claude-gatekeeper\n');
 }

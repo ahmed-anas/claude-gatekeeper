@@ -34,25 +34,11 @@ export function writeApproval(): void {
   process.stdout.write(JSON.stringify(output));
 }
 
-/**
- * Main hook handler. Orchestrates the full evaluation pipeline:
- *
- * 1. Parse stdin JSON into HookInput
- * 2. Load config (with defaults fallback)
- * 3. Check static rules (fast, no AI)
- * 4. Load context (settings, CLAUDE.md, approval policy)
- * 5. Build AI prompt with full context
- * 6. Call AI evaluator (CLI or API backend)
- * 7. Apply confidence threshold to AI decision
- * 8. Write approval or exit silently (escalate)
- *
- * Every error path results in escalation (exit 0, no output).
- */
+/** Every error path results in escalation (exit 0, no output). */
 export async function main(): Promise<void> {
   let input: HookInput;
   let config: ApproverConfig;
 
-  // Step 1: Parse stdin — if we can't read the request, escalate
   try {
     const raw = readStdin();
     input = JSON.parse(raw) as HookInput;
@@ -61,7 +47,6 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Step 2: Load config — if config is broken, escalate
   try {
     config = loadConfig();
   } catch {
@@ -69,14 +54,12 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // If disabled, escalate everything
   if (!config.enabled) {
     process.exit(0);
     return;
   }
 
   try {
-    // Step 3: Check static rules (fast path, no AI needed)
     const staticDecision = checkRules(input, config);
 
     if (staticDecision === 'approve') {
@@ -103,23 +86,15 @@ export async function main(): Promise<void> {
       return;
     }
 
-    // Step 4: Load context for AI prompt
     const context = loadContext(input.cwd, config);
-
-    // Step 5: Build prompt
     const { systemPrompt, userMessage } = buildPrompt(input, context);
-
-    // Step 6: Call AI evaluator
     const result = await evaluate(systemPrompt, userMessage, config);
 
-    // Step 7: Log the decision
     logDecision(input, result, config);
 
-    // Step 8: Apply confidence threshold
     if (result.decision === 'approve' && meetsThreshold(result.confidence, config.confidenceThreshold)) {
       writeApproval();
     } else {
-      // Not confident enough or AI said escalate — show prompt to user
       process.exit(0);
     }
   } catch (error) {

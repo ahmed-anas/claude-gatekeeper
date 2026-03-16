@@ -64,7 +64,6 @@ Confidence levels (pick exactly one):
 - "high" — Confident in the assessment with minor reservations
 - "absolute" — No reasonable doubt about the correct decision`;
 
-/** Summarize permission rules for inclusion in the prompt. */
 function summarizePermissions(
   permissions: { allow?: string[]; deny?: string[]; ask?: string[] } | undefined
 ): string {
@@ -82,7 +81,6 @@ function summarizePermissions(
   return parts.join('\n');
 }
 
-/** Build the user message for the AI evaluation. */
 function buildUserMessage(input: HookInput, context: PromptContext): string {
   const parts: string[] = [];
 

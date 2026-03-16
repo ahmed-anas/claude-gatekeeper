@@ -53,7 +53,6 @@ const DEFAULT_CONFIG: ApproverConfig = {
   alwaysApprovePatterns: [],
 };
 
-/** Resolve ~ in paths to the actual home directory. */
 export function resolvePath(filePath: string): string {
   if (filePath.startsWith('~/') || filePath === '~') {
     return join(homedir(), filePath.slice(1));
@@ -61,12 +60,10 @@ export function resolvePath(filePath: string): string {
   return filePath;
 }
 
-/** Get the config file path. Supports CLAUDE_GATEKEEPER_CONFIG env override. */
 export function getConfigPath(): string {
   return process.env.CLAUDE_GATEKEEPER_CONFIG || join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');
 }
 
-/** Load configuration, merging user overrides with defaults. */
 export function loadConfig(): ApproverConfig {
   const configPath = getConfigPath();
   try {
@@ -78,11 +75,9 @@ export function loadConfig(): ApproverConfig {
   }
 }
 
-/** Merge user config with defaults, validating values. */
 export function mergeConfig(userConfig: Partial<ApproverConfig>): ApproverConfig {
   const merged: ApproverConfig = { ...DEFAULT_CONFIG, ...userConfig };
 
-  // Validate confidence threshold
   if (!CONFIDENCE_LEVELS.includes(merged.confidenceThreshold as ConfidenceLevel)) {
     merged.confidenceThreshold = DEFAULT_CONFIG.confidenceThreshold;
   }
@@ -90,14 +85,12 @@ export function mergeConfig(userConfig: Partial<ApproverConfig>): ApproverConfig
   if (merged.timeoutMs > 60000) merged.timeoutMs = 60000;
   if (merged.maxContextLength < 0) merged.maxContextLength = 0;
 
-  // Validate enums
   if (!['cli', 'api'].includes(merged.backend)) merged.backend = DEFAULT_CONFIG.backend;
   if (!['debug', 'info', 'warn'].includes(merged.logLevel)) merged.logLevel = DEFAULT_CONFIG.logLevel;
 
-  // Resolve ~ in logFile path
   merged.logFile = resolvePath(merged.logFile);
 
-  // Merge pattern arrays (user additions + defaults)
+  // User escalate patterns are merged with (not replacing) defaults
   if (userConfig.alwaysEscalatePatterns) {
     merged.alwaysEscalatePatterns = [
       ...DEFAULT_CONFIG.alwaysEscalatePatterns,

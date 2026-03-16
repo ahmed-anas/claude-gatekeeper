@@ -20,7 +20,6 @@
 import { spawn } from 'child_process';
 import { ApproverConfig, CONFIDENCE_LEVELS, ConfidenceLevel, EvaluationResult } from './types';
 
-/** Validate and normalize a confidence value from AI response. */
 function parseConfidence(value: unknown): ConfidenceLevel {
   if (typeof value === 'string' && CONFIDENCE_LEVELS.includes(value as ConfidenceLevel)) {
     return value as ConfidenceLevel;
@@ -28,9 +27,7 @@ function parseConfidence(value: unknown): ConfidenceLevel {
   return 'low';
 }
 
-/** Parse a decision from AI response text. */
 export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision' | 'confidence' | 'reasoning'> {
-  // Try to extract a JSON object with a "decision" field
   const jsonMatch = text.match(/\{[\s\S]*?"decision"[\s\S]*?\}/);
   if (jsonMatch) {
     try {
@@ -43,21 +40,18 @@ export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision'
         };
       }
     } catch {
-      // Malformed JSON — fall through
+      // fall through to keyword matching
     }
   }
 
-  // Fallback: keyword matching
   const lower = text.toLowerCase();
   if (lower.includes('approve') && !lower.includes('escalate')) {
     return { decision: 'approve', confidence: 'low', reasoning: text.slice(0, 200) };
   }
 
-  // Default to escalate (safe fallback)
   return { decision: 'escalate', confidence: 'low', reasoning: text.slice(0, 200) };
 }
 
-/** Evaluate using `claude -p` CLI (default backend, no API key needed). */
 export async function evaluateWithCli(
   systemPrompt: string,
   userMessage: string,
@@ -84,7 +78,6 @@ export async function evaluateWithCli(
       stderr += data.toString();
     });
 
-    // Set up a timeout
     const timer = setTimeout(() => {
       proc.kill('SIGTERM');
       resolve({
@@ -112,13 +105,11 @@ export async function evaluateWithCli(
       }
 
       try {
-        // claude --output-format json returns {"result": "...", ...}
         const jsonOut = JSON.parse(stdout);
         const responseText = String(jsonOut.result ?? jsonOut.text ?? stdout);
         const parsed = parseAiResponse(responseText);
         resolve({ ...parsed, model: `cli:${config.model}`, latencyMs });
       } catch {
-        // Try parsing stdout directly as AI response
         const parsed = parseAiResponse(stdout);
         resolve({ ...parsed, model: `cli:${config.model}`, latencyMs });
       }
@@ -135,13 +126,11 @@ export async function evaluateWithCli(
       });
     });
 
-    // Write prompt to stdin and close
     proc.stdin.write(fullPrompt);
     proc.stdin.end();
   });
 }
 
-/** Evaluate using direct Anthropic API (faster, requires ANTHROPIC_API_KEY). */
 export async function evaluateWithApi(
   systemPrompt: string,
   userMessage: string,
@@ -188,7 +177,6 @@ export async function evaluateWithApi(
   }
 }
 
-/** Evaluate a permission request using the configured backend. */
 export async function evaluate(
   systemPrompt: string,
   userMessage: string,
@@ -196,7 +184,6 @@ export async function evaluate(
 ): Promise<EvaluationResult> {
   if (config.backend === 'api') {
     if (!process.env.ANTHROPIC_API_KEY) {
-      // Fallback to CLI if API key is not set
       return evaluateWithCli(systemPrompt, userMessage, config);
     }
     return evaluateWithApi(systemPrompt, userMessage, config);

@@ -6,25 +6,23 @@
  * global APPROVAL_POLICY.md template to ~/.claude/.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { homedir } from 'os';
 import { execSync } from 'child_process';
-import { ask, closePrompt } from './prompt-utils';
+import { readJson, writeJson } from './fs-utils';
+import { ask, closePrompt } from './cli-prompt';
 
 const HOOK_TIMEOUT = 15000;
 
-/** Resolve the absolute path to the bin/gatekeeper script. */
 function getBinPath(): string {
   return resolve(join(__dirname, '..', 'bin', 'gatekeeper'));
 }
 
-/** Resolve the absolute path to the templates directory. */
 function getTemplatesDir(): string {
   return resolve(join(__dirname, '..', 'templates'));
 }
 
-/** Check if Claude Code CLI is available. */
 function checkClaude(): boolean {
   try {
     execSync('which claude', { stdio: 'pipe', timeout: 5000 });
@@ -34,33 +32,15 @@ function checkClaude(): boolean {
   }
 }
 
-/** Read and parse a JSON file, returning null on failure. */
-export function readJson(filePath: string): Record<string, unknown> | null {
-  try {
-    return JSON.parse(readFileSync(filePath, 'utf-8'));
-  } catch {
-    return null;
-  }
-}
-
-/** Write a JSON file, creating directories as needed. */
-export function writeJson(filePath: string, data: unknown): void {
-  mkdirSync(dirname(filePath), { recursive: true });
-  writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
-}
-
-/** Register the PermissionRequest hook in ~/.claude/settings.json. */
 function registerHook(binPath: string): { created: boolean; alreadyExists: boolean } {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   const settings = readJson(settingsPath) ?? {};
 
-  // Ensure hooks object exists
   if (!settings.hooks || typeof settings.hooks !== 'object') {
     settings.hooks = {};
   }
   const hooks = settings.hooks as Record<string, unknown>;
 
-  // Check if our hook is already registered
   const permReqs = hooks.PermissionRequest;
   if (Array.isArray(permReqs)) {
     const alreadyRegistered = permReqs.some((entry: Record<string, unknown>) => {
@@ -75,7 +55,6 @@ function registerHook(binPath: string): { created: boolean; alreadyExists: boole
     }
   }
 
-  // Build our hook entry
   const hookEntry = {
     matcher: '',
     hooks: [
@@ -87,7 +66,6 @@ function registerHook(binPath: string): { created: boolean; alreadyExists: boole
     ],
   };
 
-  // Merge into existing PermissionRequest array or create new
   if (Array.isArray(permReqs)) {
     permReqs.push(hookEntry);
   } else {
@@ -98,7 +76,6 @@ function registerHook(binPath: string): { created: boolean; alreadyExists: boole
   return { created: true, alreadyExists: false };
 }
 
-/** Create a default config file. */
 function createConfig(): string {
   const configPath = join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');
   const defaultConfig = {
@@ -117,7 +94,6 @@ export async function setup(): Promise<void> {
   console.log('\nClaude Gatekeeper Setup');
   console.log('======================\n');
 
-  // 1. Check prerequisites
   const hasClaude = checkClaude();
   if (hasClaude) {
     console.log('  [ok] Claude Code CLI found');
@@ -129,7 +105,6 @@ export async function setup(): Promise<void> {
   const nodeVersion = process.version;
   console.log(`  [ok] Node.js ${nodeVersion}\n`);
 
-  // 2. Register hook
   const binPath = getBinPath();
   if (!existsSync(binPath)) {
     console.error(`  [error] bin/gatekeeper not found at ${binPath}`);
@@ -145,7 +120,6 @@ export async function setup(): Promise<void> {
     console.log('  [ok] PermissionRequest hook registered\n');
   }
 
-  // 3. Optional config
   const configPath = join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');
   if (existsSync(configPath)) {
     console.log(`Config file exists: ${configPath}`);
@@ -160,7 +134,6 @@ export async function setup(): Promise<void> {
   }
   console.log('');
 
-  // 4. Optional global approval policy
   const policyDest = join(homedir(), '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md');
   if (existsSync(policyDest)) {
     console.log('Approval policy exists: ~/.claude/claude-gatekeeper/APPROVAL_POLICY.md');
@@ -181,7 +154,6 @@ export async function setup(): Promise<void> {
   }
   console.log('       Tip: add a per-project override with <project>/APPROVAL_POLICY.md');
 
-  // 5. Done
   closePrompt();
   console.log('\n---');
   console.log('Setup complete! Start a new Claude Code session to activate.');

@@ -66,7 +66,6 @@ function wildcardMatch(value: string, pattern: string): boolean {
   return regex.test(value);
 }
 
-/** Check if a value matches any pattern in a list. */
 function matchesAnyPattern(value: string, patterns: string[]): boolean {
   return patterns.some((pattern) => wildcardMatch(value, pattern));
 }
@@ -80,7 +79,6 @@ function matchesAnyPattern(value: string, patterns: string[]): boolean {
 export function checkRules(input: HookInput, config: ApproverConfig): RuleDecision {
   const target = extractMatchTarget(input);
 
-  // For Bash commands, check each segment of compound commands
   if (input.tool_name === 'Bash') {
     const segments = splitCompoundCommand(target);
     // If ANY segment matches an escalate pattern, escalate the whole thing
@@ -89,16 +87,14 @@ export function checkRules(input: HookInput, config: ApproverConfig): RuleDecisi
         return 'escalate';
       }
     }
-    // Check the full command too (in case the pattern spans segments)
+    // Also check the full command (pattern may span segments)
     if (matchesAnyPattern(target, config.alwaysEscalatePatterns)) {
       return 'escalate';
     }
-    // Check approve patterns (full command only)
     if (matchesAnyPattern(target, config.alwaysApprovePatterns)) {
       return 'approve';
     }
   } else {
-    // Non-Bash tools: check against patterns directly
     if (matchesAnyPattern(target, config.alwaysEscalatePatterns)) {
       return 'escalate';
     }
@@ -110,4 +106,4 @@ export function checkRules(input: HookInput, config: ApproverConfig): RuleDecisi
   return 'evaluate';
 }
 
-export { extractMatchTarget, splitCompoundCommand, matchesAnyPattern, wildcardMatch };
+export { extractMatchTarget, splitCompoundCommand, matchesAnyPattern };

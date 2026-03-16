@@ -13,17 +13,14 @@ import { appendFileSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { ApproverConfig, EvaluationResult, HookInput } from './types';
 
-/** Ensure the parent directory of a file exists. */
 function ensureDir(filePath: string): void {
   mkdirSync(dirname(filePath), { recursive: true });
 }
 
-/** Get ISO timestamp. */
 function timestamp(): string {
   return new Date().toISOString();
 }
 
-/** Summarize tool input for log line. */
 function summarizeInput(input: HookInput): string {
   if (input.tool_name === 'Bash') {
     const cmd = String(input.tool_input.command || '');
@@ -38,7 +35,6 @@ function summarizeInput(input: HookInput): string {
   return JSON.stringify(input.tool_input).slice(0, 120);
 }
 
-/** Log a decision to the audit file. */
 export function logDecision(
   input: HookInput,
   result: EvaluationResult,
@@ -56,7 +52,6 @@ export function logDecision(
   }
 }
 
-/** Log a warning message. */
 export function logWarning(message: string, config: ApproverConfig): void {
   try {
     ensureDir(config.logFile);
@@ -67,7 +62,6 @@ export function logWarning(message: string, config: ApproverConfig): void {
   }
 }
 
-/** Log an error. */
 export function logError(
   input: HookInput | null,
   error: unknown,
@@ -84,7 +78,6 @@ export function logError(
   }
 }
 
-/** Log debug information (only when logLevel is 'debug'). */
 export function logDebug(message: string, config: ApproverConfig): void {
   if (config.logLevel !== 'debug') return;
 

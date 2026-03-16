@@ -7,7 +7,6 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { loadConfig, getConfigPath } from './config';
 
-/** Check if the hook is registered in ~/.claude/settings.json. */
 function isHookRegistered(): { registered: boolean; command?: string } {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   try {
@@ -24,7 +23,6 @@ function isHookRegistered(): { registered: boolean; command?: string } {
       }
     }
   } catch {
-    // settings.json doesn't exist or is invalid
   }
   return { registered: false };
 }
@@ -33,7 +31,6 @@ export function status(): void {
   console.log('\nClaude Gatekeeper Status');
   console.log('=======================\n');
 
-  // Hook registration
   const hook = isHookRegistered();
   if (hook.registered) {
     console.log(`  Hook:     registered`);
@@ -43,19 +40,16 @@ export function status(): void {
     console.log('            Run `claude-gatekeeper setup` to register.');
   }
 
-  // Config
   const configPath = getConfigPath();
   const configExists = existsSync(configPath);
   console.log(`  Config:   ${configExists ? configPath : 'using defaults'}`);
 
-  // Load and display active config
   const config = loadConfig();
   console.log(`  Enabled:  ${config.enabled}`);
   console.log(`  Backend:  ${config.backend}`);
   console.log(`  Model:    ${config.model}`);
   console.log(`  Threshold: ${config.confidenceThreshold}`);
 
-  // Approval policies
   const home = homedir();
   const cwd = process.cwd();
   const globalPolicy = existsSync(join(home, '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md'));
@@ -63,7 +57,6 @@ export function status(): void {
     || existsSync(join(cwd, '.claude', 'APPROVAL_POLICY.md'));
   console.log(`  Policy:   global=${globalPolicy ? 'yes' : 'no'}, project=${projectPolicy ? 'yes' : 'no'}`);
 
-  // Log file
   console.log(`  Log file: ${config.logFile}`);
   console.log('');
 }
