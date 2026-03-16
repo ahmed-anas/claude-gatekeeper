@@ -13,6 +13,7 @@ import { Command } from 'commander';
 import { main as runHook } from './index';
 import { setup } from './setup';
 import { status } from './status';
+import { uninstall } from './uninstall';
 
 const program = new Command();
 
@@ -41,6 +42,18 @@ program
       status();
     } catch (err) {
       console.error(`Status check failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('uninstall')
+  .description('Remove the hook and optionally delete config/logs')
+  .action(async () => {
+    try {
+      await uninstall();
+    } catch (err) {
+      console.error(`Uninstall failed: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
   });

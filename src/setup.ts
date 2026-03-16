@@ -49,7 +49,7 @@ function checkClaude(): boolean {
 }
 
 /** Read and parse a JSON file, returning null on failure. */
-function readJson(filePath: string): Record<string, unknown> | null {
+export function readJson(filePath: string): Record<string, unknown> | null {
   try {
     return JSON.parse(readFileSync(filePath, 'utf-8'));
   } catch {
@@ -58,7 +58,7 @@ function readJson(filePath: string): Record<string, unknown> | null {
 }
 
 /** Write a JSON file, creating directories as needed. */
-function writeJson(filePath: string, data: unknown): void {
+export function writeJson(filePath: string, data: unknown): void {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n');
 }

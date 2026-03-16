@@ -39,12 +39,26 @@ claude-gatekeeper setup
 This will:
 1. Register the PermissionRequest hook in `~/.claude/settings.json`
 2. Optionally create a config file at `~/.claude/claude-gatekeeper/config.json`
-3. Optionally copy an `APPROVAL_POLICY.md` template to your project
+3. Optionally install a global `APPROVAL_POLICY.md` template
 
 To check your installation:
 
 ```bash
 claude-gatekeeper status
+```
+
+## Uninstalling
+
+```bash
+claude-gatekeeper uninstall
+```
+
+This removes the hook from `~/.claude/settings.json` and optionally deletes `~/.claude/claude-gatekeeper/` (config, logs, approval policy). Per-project `APPROVAL_POLICY.md` files are **not** removed — delete those manually if needed.
+
+To also remove the CLI:
+
+```bash
+npm uninstall -g claude-gatekeeper
 ```
 
 ## AI Backend
