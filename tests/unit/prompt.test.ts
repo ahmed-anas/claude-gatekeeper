@@ -14,7 +14,8 @@ const emptyContext: PromptContext = {
   projectSettings: null,
   claudeMd: null,
   projectClaudeMd: null,
-  approvalPolicy: null,
+  globalApprovalPolicy: null,
+  projectApprovalPolicy: null,
 };
 
 describe('SYSTEM_PROMPT', () => {
@@ -81,10 +82,10 @@ describe('buildUserMessage', () => {
   it('includes approval policy when available', () => {
     const context: PromptContext = {
       ...emptyContext,
-      approvalPolicy: '## APPROVE\n- npm commands',
+      globalApprovalPolicy: '## APPROVE\n- npm commands',
     };
     const msg = buildUserMessage(baseInput, context);
-    expect(msg).toContain('Project Approval Policy');
+    expect(msg).toContain('Global Approval Policy');
     expect(msg).toContain('npm commands');
   });
 

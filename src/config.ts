@@ -1,7 +1,7 @@
 /**
  * Configuration loading and merging.
  *
- * Loads user config from ~/.config/claude-gatekeeper/config.json
+ * Loads user config from ~/.claude/claude-gatekeeper/config.json
  * and merges it with sensible defaults. Falls back to defaults on
  * any error (missing file, invalid JSON, etc).
  *
@@ -19,9 +19,9 @@ const DEFAULT_CONFIG: ApproverConfig = {
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',
-  timeoutMs: 10000,
+  timeoutMs: 30000,
   maxContextLength: 2000,
-  logFile: join(homedir(), '.config', 'claude-gatekeeper', 'decisions.log'),
+  logFile: join(homedir(), '.claude', 'claude-gatekeeper', 'decisions.log'),
   logLevel: 'info',
   alwaysEscalatePatterns: [
     'rm -rf /*',
@@ -63,7 +63,7 @@ export function resolvePath(filePath: string): string {
 
 /** Get the config file path. Supports CLAUDE_GATEKEEPER_CONFIG env override. */
 export function getConfigPath(): string {
-  return process.env.CLAUDE_GATEKEEPER_CONFIG || join(homedir(), '.config', 'claude-gatekeeper', 'config.json');
+  return process.env.CLAUDE_GATEKEEPER_CONFIG || join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');
 }
 
 /** Load configuration, merging user overrides with defaults. */

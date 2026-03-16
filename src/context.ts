@@ -6,7 +6,7 @@
  * - Project settings (<cwd>/.claude/settings.json)
  * - Global CLAUDE.md (~/.claude/CLAUDE.md) — user instructions
  * - Project CLAUDE.md (<cwd>/CLAUDE.md) — project instructions
- * - Approval policy (<cwd>/APPROVAL_POLICY.md) — project-specific rules
+ * - Approval policy (global ~/.claude/claude-gatekeeper/ + project-level, merged)
  *
  * All reads are best-effort: missing files return null, never throw.
  * CLAUDE.md content is truncated to maxContextLength to control prompt size.
@@ -61,8 +61,9 @@ export function loadContext(cwd: string, config: ApproverConfig): PromptContext 
   // Project CLAUDE.md: <cwd>/CLAUDE.md
   const projectClaudeMd = safeReadFile(join(cwd, 'CLAUDE.md'));
 
-  // Approval policy: <cwd>/APPROVAL_POLICY.md or <cwd>/.claude/APPROVAL_POLICY.md
-  const approvalPolicy =
+  // Approval policy: global + project-level (both loaded, merged)
+  const globalApprovalPolicy = safeReadFile(join(home, '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md'));
+  const projectApprovalPolicy =
     safeReadFile(join(cwd, 'APPROVAL_POLICY.md')) ??
     safeReadFile(join(cwd, '.claude', 'APPROVAL_POLICY.md'));
 
@@ -71,7 +72,8 @@ export function loadContext(cwd: string, config: ApproverConfig): PromptContext 
     projectSettings,
     claudeMd: truncate(globalClaudeMd, config.maxContextLength),
     projectClaudeMd: truncate(projectClaudeMd, config.maxContextLength),
-    approvalPolicy: truncate(approvalPolicy, config.maxContextLength),
+    globalApprovalPolicy: truncate(globalApprovalPolicy, config.maxContextLength),
+    projectApprovalPolicy: truncate(projectApprovalPolicy, config.maxContextLength),
   };
 }
 

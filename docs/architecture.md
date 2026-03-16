@@ -29,7 +29,7 @@ Claude Gatekeeper is a Claude Code **PermissionRequest hook**. When Claude Code 
                                  │
                     ┌────────────▼─────────────┐
                     │  Load config              │
-                    │  (~/.config/claude-      │
+                    │  (~/.claude/claude-      │
                     │   gatekeeper/config.json) │
                     │  On failure: use defaults │
                     └────────────┬─────────────┘
@@ -86,7 +86,7 @@ The main entry point. Reads stdin, calls each module in sequence, handles errors
 All TypeScript interfaces shared across modules: `HookInput`, `HookOutput`, `EvaluationResult`, `ApproverConfig`, `PromptContext`, `UserSettings`, `RuleDecision`.
 
 ### `config.ts` — Configuration
-Loads user config from `~/.config/claude-gatekeeper/config.json` and merges with defaults. Validates values (clamps thresholds, validates enums). Falls back to defaults on any error.
+Loads user config from `~/.claude/claude-gatekeeper/config.json` and merges with defaults. Validates values (clamps thresholds, validates enums). Falls back to defaults on any error.
 
 ### `context.ts` — Context Gathering
 Reads files that provide context for the AI prompt:

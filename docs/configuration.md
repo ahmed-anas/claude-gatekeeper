@@ -3,7 +3,7 @@
 ## Config File Location
 
 ```
-~/.config/claude-gatekeeper/config.json
+~/.claude/claude-gatekeeper/config.json
 ```
 
 The config file is optional. All fields have sensible defaults.
@@ -16,9 +16,9 @@ The config file is optional. All fields have sensible defaults.
   "backend": "cli",
   "model": "haiku",
   "confidenceThreshold": "high",
-  "timeoutMs": 10000,
+  "timeoutMs": 30000,
   "maxContextLength": 2000,
-  "logFile": "~/.config/claude-gatekeeper/decisions.log",
+  "logFile": "~/.claude/claude-gatekeeper/decisions.log",
   "logLevel": "info",
   "alwaysEscalatePatterns": [],
   "alwaysApprovePatterns": []
@@ -53,13 +53,13 @@ Minimum confidence level required from the AI to auto-approve. The AI picks from
 | `"high"` | Confident with minor reservations | **Default** — good balance of safety and convenience |
 | `"absolute"` | No reasonable doubt | Very conservative — only approve when AI is certain |
 
-### `timeoutMs` (number, default: `10000`)
+### `timeoutMs` (number, default: `30000`)
 Maximum time in milliseconds to wait for AI evaluation. Clamped to [1000, 60000]. If the AI doesn't respond in time, the request is escalated to the user.
 
 ### `maxContextLength` (number, default: `2000`)
 Maximum characters of CLAUDE.md content to include in the AI prompt. Longer values give the AI more context but increase latency and token usage.
 
-### `logFile` (string, default: `~/.config/claude-gatekeeper/decisions.log`)
+### `logFile` (string, default: `~/.claude/claude-gatekeeper/decisions.log`)
 Path to the audit log file. Supports `~` for home directory. The directory is created automatically if it doesn't exist.
 
 ### `logLevel` (string, default: `"info"`)

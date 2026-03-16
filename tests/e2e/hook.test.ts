@@ -80,7 +80,7 @@ async function runWithAI(
   const tmpHome = join(tmpdir(), `gatekeeper-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   try {
-    const configDir = join(tmpHome, '.config', 'claude-gatekeeper');
+    const configDir = join(tmpHome, '.claude', 'claude-gatekeeper');
     mkdirSync(configDir, { recursive: true });
     if (configOverrides) {
       writeFileSync(join(configDir, 'config.json'), JSON.stringify(configOverrides));

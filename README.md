@@ -21,46 +21,31 @@ Permission Request → Static Rules → AI Evaluation → Decision
 
 ## Installation
 
-### 1. Build
-
 ```bash
+# From source (npm package coming soon)
+git clone https://github.com/ahmed-anas/claude-gatekeeper.git
 cd claude-gatekeeper
 nvm exec npm install
 nvm exec npm run build
+nvm exec npm link
 ```
 
-### 2. Register the hook
-
-Add this to your `~/.claude/settings.json` in the `hooks` section:
-
-```json
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/path/to/claude-gatekeeper/bin/gatekeeper",
-            "timeout": 15000
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### 3. (Optional) Create a project approval policy
-
-Copy the template to your project:
+Then run the setup wizard:
 
 ```bash
-cp /path/to/claude-gatekeeper/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
+claude-gatekeeper setup
 ```
 
-Edit it to define what should be auto-approved or escalated for your specific project.
+This will:
+1. Register the PermissionRequest hook in `~/.claude/settings.json`
+2. Optionally create a config file at `~/.claude/claude-gatekeeper/config.json`
+3. Optionally copy an `APPROVAL_POLICY.md` template to your project
+
+To check your installation:
+
+```bash
+claude-gatekeeper status
+```
 
 ## AI Backend
 
@@ -73,7 +58,7 @@ By default, the hook uses `claude -p --model haiku` to evaluate requests. This p
 For ~2x faster evaluations, set `ANTHROPIC_API_KEY` in your environment and configure:
 
 ```json
-// ~/.config/claude-gatekeeper/config.json
+// ~/.claude/claude-gatekeeper/config.json
 {
   "backend": "api"
 }
@@ -81,7 +66,7 @@ For ~2x faster evaluations, set `ANTHROPIC_API_KEY` in your environment and conf
 
 ## Configuration
 
-Create `~/.config/claude-gatekeeper/config.json` (all fields optional):
+Create `~/.claude/claude-gatekeeper/config.json` (all fields optional):
 
 ```json
 {
@@ -89,9 +74,9 @@ Create `~/.config/claude-gatekeeper/config.json` (all fields optional):
   "backend": "cli",
   "model": "haiku",
   "confidenceThreshold": "high",
-  "timeoutMs": 10000,
+  "timeoutMs": 30000,
   "maxContextLength": 2000,
-  "logFile": "~/.config/claude-gatekeeper/decisions.log",
+  "logFile": "~/.claude/claude-gatekeeper/decisions.log",
   "logLevel": "info",
   "alwaysEscalatePatterns": [],
   "alwaysApprovePatterns": []
@@ -104,7 +89,7 @@ Create `~/.config/claude-gatekeeper/config.json` (all fields optional):
 | `backend` | `"cli"` | `"cli"` for `claude -p`, `"api"` for direct Anthropic API |
 | `model` | `"haiku"` | Model name (used as-is for CLI, mapped for API) |
 | `confidenceThreshold` | `"high"` | Minimum confidence to auto-approve: `"none"`, `"low"`, `"medium"`, `"high"`, `"absolute"` |
-| `timeoutMs` | `10000` | Max time to wait for AI response |
+| `timeoutMs` | `30000` | Max time to wait for AI response |
 | `maxContextLength` | `2000` | Max chars of CLAUDE.md to include in prompt |
 | `logFile` | `~/.config/.../decisions.log` | Audit log file path |
 | `logLevel` | `"info"` | `"debug"`, `"info"`, or `"warn"` |

@@ -64,7 +64,8 @@ const emptyContext = {
   projectSettings: null,
   claudeMd: null,
   projectClaudeMd: null,
-  approvalPolicy: null,
+  globalApprovalPolicy: null,
+  projectApprovalPolicy: null,
 };
 
 describe('main()', () => {

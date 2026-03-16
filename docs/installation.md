@@ -100,11 +100,11 @@ Edit it to match your project's specific needs.
 
 ## Step 4: (Optional) Custom Configuration
 
-Create `~/.config/claude-gatekeeper/config.json`:
+Create `~/.claude/claude-gatekeeper/config.json`:
 
 ```bash
-mkdir -p ~/.config/claude-gatekeeper
-cat > ~/.config/claude-gatekeeper/config.json << 'EOF'
+mkdir -p ~/.claude/claude-gatekeeper
+cat > ~/.claude/claude-gatekeeper/config.json << 'EOF'
 {
   "confidenceThreshold": "high",
   "logLevel": "info"
@@ -119,7 +119,7 @@ See [configuration.md](configuration.md) for all options.
 Start a new Claude Code session and trigger a command that would normally prompt you. Check the audit log:
 
 ```bash
-cat ~/.config/claude-gatekeeper/decisions.log
+cat ~/.claude/claude-gatekeeper/decisions.log
 ```
 
 You should see decision entries with timestamps, confidence scores, and reasoning.
@@ -129,7 +129,7 @@ You should see decision entries with timestamps, confidence scores, and reasonin
 1. Remove the `PermissionRequest` hook from `~/.claude/settings.json`
 2. (Optional) Delete the config and log files:
    ```bash
-   rm -rf ~/.config/claude-gatekeeper
+   rm -rf ~/.claude/claude-gatekeeper
    ```
 
 ## Troubleshooting
@@ -140,7 +140,7 @@ You should see decision entries with timestamps, confidence scores, and reasonin
 - Restart Claude Code (hooks are loaded at session start)
 
 ### Everything is escalating (nothing auto-approved)
-- Check the log file for errors: `tail ~/.config/claude-gatekeeper/decisions.log`
+- Check the log file for errors: `tail ~/.claude/claude-gatekeeper/decisions.log`
 - If using CLI backend: ensure `claude` is in your PATH
 - If using API backend: ensure `ANTHROPIC_API_KEY` is set
 - Try lowering `confidenceThreshold` to `"medium"`

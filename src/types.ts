@@ -61,7 +61,8 @@ export interface PromptContext {
   projectSettings: UserSettings | null;
   claudeMd: string | null;
   projectClaudeMd: string | null;
-  approvalPolicy: string | null;
+  globalApprovalPolicy: string | null;
+  projectApprovalPolicy: string | null;
 }
 
 /** Subset of Claude Code settings relevant to permissions. */

@@ -19,7 +19,8 @@
     "prepare": "npm run build"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0"
+    "@anthropic-ai/sdk": "^0.78.0",
+    "commander": "^13.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",

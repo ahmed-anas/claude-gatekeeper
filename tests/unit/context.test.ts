@@ -92,7 +92,7 @@ describe('loadContext', () => {
     expect(context.projectSettings).toEqual({ permissions: { deny: [] } });
     expect(context.claudeMd).toBe('# Global instructions');
     expect(context.projectClaudeMd).toBe('# Project instructions');
-    expect(context.approvalPolicy).toBe('# Policy');
+    expect(context.projectApprovalPolicy).toBe('# Policy');
   });
 
   it('returns nulls when no files exist', () => {
@@ -119,7 +119,8 @@ describe('loadContext', () => {
     expect(context.projectSettings).toBeNull();
     expect(context.claudeMd).toBeNull();
     expect(context.projectClaudeMd).toBeNull();
-    expect(context.approvalPolicy).toBeNull();
+    expect(context.globalApprovalPolicy).toBeNull();
+    expect(context.projectApprovalPolicy).toBeNull();
   });
 
   it('truncates long CLAUDE.md content', () => {
@@ -167,6 +168,6 @@ describe('loadContext', () => {
     };
 
     const context = loadContext('/project', config);
-    expect(context.approvalPolicy).toBe('# Fallback policy');
+    expect(context.projectApprovalPolicy).toBe('# Fallback policy');
   });
 });

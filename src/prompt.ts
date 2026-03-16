@@ -100,11 +100,16 @@ function buildUserMessage(input: HookInput, context: PromptContext): string {
     if (projectPerms) parts.push(projectPerms);
   }
 
-  // Add approval policy if present
-  if (context.approvalPolicy) {
+  // Add approval policies (both global and project-level)
+  if (context.globalApprovalPolicy) {
     parts.push('');
-    parts.push('Project Approval Policy:');
-    parts.push(context.approvalPolicy);
+    parts.push('Global Approval Policy:');
+    parts.push(context.globalApprovalPolicy);
+  }
+  if (context.projectApprovalPolicy) {
+    parts.push('');
+    parts.push('Project Approval Policy (extends global — takes precedence on conflicts):');
+    parts.push(context.projectApprovalPolicy);
   }
 
   // Add CLAUDE.md for project context
