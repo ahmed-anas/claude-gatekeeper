@@ -9,7 +9,7 @@
 ## Step 1: Build
 
 ```bash
-cd /path/to/claude-ai-approver
+cd /path/to/claude-gatekeeper
 nvm exec npm install
 nvm exec npm run build
 ```
@@ -29,7 +29,7 @@ Add the PermissionRequest hook to your `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "/absolute/path/to/claude-ai-approver/bin/ai-approver",
+            "command": "/absolute/path/to/claude-gatekeeper/bin/gatekeeper",
             "timeout": 15000
           }
         ]
@@ -40,7 +40,7 @@ Add the PermissionRequest hook to your `~/.claude/settings.json`:
 ```
 
 **Important:**
-- Use the **absolute path** to the `bin/ai-approver` script
+- Use the **absolute path** to the `bin/gatekeeper` script
 - The empty `matcher` (`""`) matches all tools — the hook fires for every permission prompt
 - The `timeout` of 15000ms (15s) gives the AI enough time to evaluate. If it times out, the normal prompt appears.
 
@@ -78,7 +78,7 @@ After:
         "hooks": [
           {
             "type": "command",
-            "command": "/absolute/path/to/claude-ai-approver/bin/ai-approver",
+            "command": "/absolute/path/to/claude-gatekeeper/bin/gatekeeper",
             "timeout": 15000
           }
         ]
@@ -93,20 +93,20 @@ After:
 Copy the template to your project:
 
 ```bash
-cp /path/to/claude-ai-approver/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
+cp /path/to/claude-gatekeeper/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
 ```
 
 Edit it to match your project's specific needs.
 
 ## Step 4: (Optional) Custom Configuration
 
-Create `~/.config/claude-ai-approver/config.json`:
+Create `~/.config/claude-gatekeeper/config.json`:
 
 ```bash
-mkdir -p ~/.config/claude-ai-approver
-cat > ~/.config/claude-ai-approver/config.json << 'EOF'
+mkdir -p ~/.config/claude-gatekeeper
+cat > ~/.config/claude-gatekeeper/config.json << 'EOF'
 {
-  "confidenceThreshold": 0.85,
+  "confidenceThreshold": "high",
   "logLevel": "info"
 }
 EOF
@@ -119,7 +119,7 @@ See [configuration.md](configuration.md) for all options.
 Start a new Claude Code session and trigger a command that would normally prompt you. Check the audit log:
 
 ```bash
-cat ~/.config/claude-ai-approver/decisions.log
+cat ~/.config/claude-gatekeeper/decisions.log
 ```
 
 You should see decision entries with timestamps, confidence scores, and reasoning.
@@ -129,23 +129,23 @@ You should see decision entries with timestamps, confidence scores, and reasonin
 1. Remove the `PermissionRequest` hook from `~/.claude/settings.json`
 2. (Optional) Delete the config and log files:
    ```bash
-   rm -rf ~/.config/claude-ai-approver
+   rm -rf ~/.config/claude-gatekeeper
    ```
 
 ## Troubleshooting
 
 ### Hook doesn't seem to be running
 - Verify the path in `~/.claude/settings.json` is correct and absolute
-- Check that `bin/ai-approver` is executable: `chmod +x bin/ai-approver`
+- Check that `bin/gatekeeper` is executable: `chmod +x bin/gatekeeper`
 - Restart Claude Code (hooks are loaded at session start)
 
 ### Everything is escalating (nothing auto-approved)
-- Check the log file for errors: `tail ~/.config/claude-ai-approver/decisions.log`
+- Check the log file for errors: `tail ~/.config/claude-gatekeeper/decisions.log`
 - If using CLI backend: ensure `claude` is in your PATH
 - If using API backend: ensure `ANTHROPIC_API_KEY` is set
-- Try lowering `confidenceThreshold` to `0.7`
+- Try lowering `confidenceThreshold` to `"medium"`
 
 ### Auto-approvals are too aggressive
-- Raise `confidenceThreshold` to `0.95`
+- Raise `confidenceThreshold` to `"absolute"`
 - Add patterns to `alwaysEscalatePatterns` in config
 - Make your `APPROVAL_POLICY.md` more restrictive

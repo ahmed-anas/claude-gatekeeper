@@ -1,7 +1,7 @@
 /**
  * Configuration loading and merging.
  *
- * Loads user config from ~/.config/claude-ai-approver/config.json
+ * Loads user config from ~/.config/claude-gatekeeper/config.json
  * and merges it with sensible defaults. Falls back to defaults on
  * any error (missing file, invalid JSON, etc).
  *
@@ -21,7 +21,7 @@ const DEFAULT_CONFIG: ApproverConfig = {
   confidenceThreshold: 'high',
   timeoutMs: 10000,
   maxContextLength: 2000,
-  logFile: join(homedir(), '.config', 'claude-ai-approver', 'decisions.log'),
+  logFile: join(homedir(), '.config', 'claude-gatekeeper', 'decisions.log'),
   logLevel: 'info',
   alwaysEscalatePatterns: [
     'rm -rf /*',
@@ -61,9 +61,9 @@ export function resolvePath(filePath: string): string {
   return filePath;
 }
 
-/** Get the config file path. Supports CLAUDE_AI_APPROVER_CONFIG env override. */
+/** Get the config file path. Supports CLAUDE_GATEKEEPER_CONFIG env override. */
 export function getConfigPath(): string {
-  return process.env.CLAUDE_AI_APPROVER_CONFIG || join(homedir(), '.config', 'claude-ai-approver', 'config.json');
+  return process.env.CLAUDE_GATEKEEPER_CONFIG || join(homedir(), '.config', 'claude-gatekeeper', 'config.json');
 }
 
 /** Load configuration, merging user overrides with defaults. */

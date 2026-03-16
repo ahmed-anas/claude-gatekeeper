@@ -1,4 +1,4 @@
-# Claude AI Approver
+# Claude Gatekeeper
 
 A Claude Code hook that uses AI to automatically evaluate permission prompts. Instead of being bombarded with "Do you want to proceed?" dialogs, this tool uses Claude Haiku to intelligently auto-approve safe operations while escalating uncertain or dangerous ones to you.
 
@@ -15,7 +15,7 @@ Permission Request → Static Rules → AI Evaluation → Decision
 1. **Claude Code triggers a permission prompt** for a tool it wants to use (Bash, Write, Edit, etc.)
 2. **Static rules check first** — obviously dangerous commands (rm -rf, sudo, curl|sh) are immediately escalated; known-safe patterns are immediately approved
 3. **AI evaluation** — for everything else, Claude Haiku analyzes the request with full context (your settings, CLAUDE.md, project approval policy)
-4. **Decision** — if AI is confident the operation is safe (above the confidence threshold), it auto-approves. Otherwise, the normal permission prompt appears
+4. **Decision** — if AI confidence meets or exceeds the threshold (default: `high`), it auto-approves. Otherwise, the normal permission prompt appears
 
 **Key safety guarantee:** The tool **never auto-denies**. It can only approve or pass through to you. Any error (API failure, timeout, parse error) results in the normal prompt appearing.
 
@@ -24,7 +24,7 @@ Permission Request → Static Rules → AI Evaluation → Decision
 ### 1. Build
 
 ```bash
-cd claude-ai-approver
+cd claude-gatekeeper
 nvm exec npm install
 nvm exec npm run build
 ```
@@ -42,7 +42,7 @@ Add this to your `~/.claude/settings.json` in the `hooks` section:
         "hooks": [
           {
             "type": "command",
-            "command": "/path/to/claude-ai-approver/bin/ai-approver",
+            "command": "/path/to/claude-gatekeeper/bin/gatekeeper",
             "timeout": 15000
           }
         ]
@@ -57,7 +57,7 @@ Add this to your `~/.claude/settings.json` in the `hooks` section:
 Copy the template to your project:
 
 ```bash
-cp /path/to/claude-ai-approver/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
+cp /path/to/claude-gatekeeper/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
 ```
 
 Edit it to define what should be auto-approved or escalated for your specific project.
@@ -73,7 +73,7 @@ By default, the hook uses `claude -p --model haiku` to evaluate requests. This p
 For ~2x faster evaluations, set `ANTHROPIC_API_KEY` in your environment and configure:
 
 ```json
-// ~/.config/claude-ai-approver/config.json
+// ~/.config/claude-gatekeeper/config.json
 {
   "backend": "api"
 }
@@ -81,17 +81,17 @@ For ~2x faster evaluations, set `ANTHROPIC_API_KEY` in your environment and conf
 
 ## Configuration
 
-Create `~/.config/claude-ai-approver/config.json` (all fields optional):
+Create `~/.config/claude-gatekeeper/config.json` (all fields optional):
 
 ```json
 {
   "enabled": true,
   "backend": "cli",
   "model": "haiku",
-  "confidenceThreshold": 0.85,
+  "confidenceThreshold": "high",
   "timeoutMs": 10000,
   "maxContextLength": 2000,
-  "logFile": "~/.config/claude-ai-approver/decisions.log",
+  "logFile": "~/.config/claude-gatekeeper/decisions.log",
   "logLevel": "info",
   "alwaysEscalatePatterns": [],
   "alwaysApprovePatterns": []
@@ -103,7 +103,7 @@ Create `~/.config/claude-ai-approver/config.json` (all fields optional):
 | `enabled` | `true` | Master switch — set to `false` to disable |
 | `backend` | `"cli"` | `"cli"` for `claude -p`, `"api"` for direct Anthropic API |
 | `model` | `"haiku"` | Model name (used as-is for CLI, mapped for API) |
-| `confidenceThreshold` | `0.85` | AI must be this confident to auto-approve (0.0-1.0) |
+| `confidenceThreshold` | `"high"` | Minimum confidence to auto-approve: `"none"`, `"low"`, `"medium"`, `"high"`, `"absolute"` |
 | `timeoutMs` | `10000` | Max time to wait for AI response |
 | `maxContextLength` | `2000` | Max chars of CLAUDE.md to include in prompt |
 | `logFile` | `~/.config/.../decisions.log` | Audit log file path |
@@ -129,8 +129,8 @@ These dangerous patterns bypass AI and always show the prompt to you:
 Every decision is logged to the audit file:
 
 ```
-[2026-03-13T18:30:00.000Z] decision=approve confidence=0.95 model=cli:haiku latency=1200ms tool=Bash input="npm run build" reasoning="Standard build command"
-[2026-03-13T18:30:05.000Z] decision=escalate confidence=1.00 model=static latency=0ms tool=Bash input="sudo rm -rf /" reasoning="Matched always-escalate pattern"
+[2026-03-13T18:30:00.000Z] decision=approve confidence=high model=cli:haiku latency=1200ms tool=Bash input="npm run build" reasoning="Standard build command"
+[2026-03-13T18:30:05.000Z] decision=escalate confidence=absolute model=static latency=0ms tool=Bash input="sudo rm -rf /" reasoning="Matched always-escalate pattern"
 ```
 
 ## Project Approval Policy
@@ -140,8 +140,9 @@ Create an `APPROVAL_POLICY.md` in your project root (or `.claude/APPROVAL_POLICY
 ## Testing
 
 ```bash
-nvm exec npm test              # All tests
+nvm exec npm test              # Unit + e2e tests (fake Claude CLI)
 nvm exec npm run test:e2e      # E2E tests only
+nvm exec npm run test:live     # Live tests with real Claude CLI (costs ~$0.001/test)
 nvm exec npm run test:coverage # With coverage report
 ```
 
@@ -159,7 +160,25 @@ src/
 └── rules.ts      # Static wildcard pattern matching
 ```
 
-## How Decisions Are Made
+## How AI Evaluation Works
+
+When a request passes static rules without a match, it goes to Claude Haiku for evaluation. The AI receives:
+
+1. **A system prompt** defining its role as a security evaluator, with explicit criteria for when to approve vs escalate
+2. **A user message** containing:
+   - The tool name and full input (e.g. `Bash` + `{"command": "npm test"}`)
+   - The working directory
+   - Your existing permission rules (allow/ask/deny lists from Claude settings — gives the AI context about your trust boundaries)
+   - Your project's `APPROVAL_POLICY.md` (if present)
+   - Excerpts from your `CLAUDE.md` files (project context)
+
+The AI responds with a JSON object: `{"decision": "approve"|"escalate", "confidence": "<level>", "reasoning": "..."}`. If confidence meets the configured threshold (default: `high`), the decision is applied. Otherwise it escalates.
+
+The prompt is deliberately conservative — "when in doubt, ALWAYS escalate" — since a false escalation just means you see a normal prompt, while a false approval could be dangerous.
+
+**Response parsing** is resilient: it extracts JSON from the response, falls back to keyword matching if JSON is malformed, and defaults to escalation if nothing can be parsed.
+
+## Decision Flow
 
 ```
                     ┌─────────────────┐
@@ -182,7 +201,7 @@ src/
                             │
                    ┌────────┼────────┐
                    │                 │
-            confidence ≥ 0.85   confidence < 0.85
+          confidence ≥ threshold  confidence < threshold
                    │                 │
                    ▼                 ▼
               (JSON stdout)      (exit 0)

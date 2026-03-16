@@ -12,7 +12,7 @@
  *   - Authenticated (run `claude` once to set up)
  *
  * Uses the real HOME (for Claude auth) but overrides the approver config
- * via CLAUDE_AI_APPROVER_CONFIG so tests don't depend on user's config.
+ * via CLAUDE_GATEKEEPER_CONFIG so tests don't depend on user's config.
  */
 
 import { execSync, spawn } from 'child_process';
@@ -140,7 +140,7 @@ describe('Live E2E: Real Claude CLI', () => {
     execSync('npm run build', { cwd: PROJECT_ROOT, stdio: 'pipe' });
 
     // 3. Write a controlled config to a temp file
-    tmpDir = join(tmpdir(), `ai-approver-live-${Date.now()}`);
+    tmpDir = join(tmpdir(), `gatekeeper-live-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
     configPath = join(tmpDir, 'config.json');
     writeFileSync(configPath, JSON.stringify({
@@ -185,7 +185,7 @@ describe('Live E2E: Real Claude CLI', () => {
   function run(stdinData: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     return runHook(stdinData, {
       PATH: `${claudeBinDir}:${process.env.PATH || ''}`,
-      CLAUDE_AI_APPROVER_CONFIG: configPath,
+      CLAUDE_GATEKEEPER_CONFIG: configPath,
     });
   }
 

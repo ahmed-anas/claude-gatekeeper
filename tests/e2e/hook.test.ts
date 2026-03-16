@@ -1,5 +1,5 @@
 /**
- * End-to-end tests for the Claude AI Approver hook.
+ * End-to-end tests for the Claude Gatekeeper hook.
  *
  * Every test spawns the real compiled dist/index.js as a child process —
  * nothing is mocked in-process. For AI evaluation tests, a fake `claude`
@@ -77,10 +77,10 @@ async function runWithAI(
   behavior: string,
   configOverrides?: Record<string, unknown>
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const tmpHome = join(tmpdir(), `ai-approver-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const tmpHome = join(tmpdir(), `gatekeeper-e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
   try {
-    const configDir = join(tmpHome, '.config', 'claude-ai-approver');
+    const configDir = join(tmpHome, '.config', 'claude-gatekeeper');
     mkdirSync(configDir, { recursive: true });
     if (configOverrides) {
       writeFileSync(join(configDir, 'config.json'), JSON.stringify(configOverrides));
@@ -119,7 +119,7 @@ function expectEscalation(result: { stdout: string; exitCode: number }): void {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('E2E: Claude AI Approver', () => {
+describe('E2E: Claude Gatekeeper', () => {
   beforeAll(() => {
     // Build the project
     try {
@@ -127,7 +127,7 @@ describe('E2E: Claude AI Approver', () => {
     } catch { /* already built */ }
 
     // Install the fake Claude CLI so the hook finds it via PATH
-    fakeBinDir = join(tmpdir(), `ai-approver-fake-bin-${Date.now()}`);
+    fakeBinDir = join(tmpdir(), `gatekeeper-fake-bin-${Date.now()}`);
     mkdirSync(fakeBinDir, { recursive: true });
     writeFileSync(
       join(fakeBinDir, 'claude'),

@@ -1,6 +1,6 @@
 # Approval Policy
 
-This file defines the approval policy for the Claude AI Approver hook.
+This file defines the approval policy for the Claude Gatekeeper hook.
 Edit this file to customize which tool invocations are auto-approved or escalated to the user.
 
 ## APPROVE (auto-approve these)

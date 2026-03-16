@@ -1,5 +1,5 @@
 /**
- * Main entry point for the Claude AI Approver hook.
+ * Main entry point for the Claude Gatekeeper hook.
  *
  * This module reads a PermissionRequest JSON from stdin, evaluates it
  * through a layered pipeline (static rules → AI), and writes an approval
