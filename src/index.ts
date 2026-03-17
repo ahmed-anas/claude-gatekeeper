@@ -105,31 +105,35 @@ export async function main(): Promise<void> {
   const hookType = input.hook_event_name;
   const mode = config.mode;
 
-  // PreToolUse in supervised mode → pass through (let PermissionRequest handle it)
-  if (hookType === 'PreToolUse' && mode !== 'hands-free') {
+  // Check the user's Claude Code permission lists (allow/deny/ask).
+  // PreToolUse fires before Claude's own permission check, so we replicate it.
+  // PermissionRequest also checks — to avoid auto-approving deny/ask commands.
+  const permCheck = checkPermissions(input);
+
+  if (permCheck.action === 'allow') {
+    // Allow-listed → pass through (no evaluation needed)
     process.exit(0);
     return;
   }
 
-  // Check the user's Claude Code permission lists (allow/deny/ask).
-  // PreToolUse fires before Claude's own permission check, so we replicate it.
-  if (hookType === 'PreToolUse') {
-    const permCheck = checkPermissions(input);
-    if (permCheck.action === 'allow') {
-      process.exit(0);
-      return;
-    }
-    if (permCheck.action === 'deny') {
-      writePreToolUseDeny(permCheck.reason);
-      logDecision(input, {
-        decision: 'deny',
-        confidence: 'absolute',
-        reasoning: permCheck.reason,
-        model: 'permissions',
-        latencyMs: 0,
-      }, config);
-      return;
-    }
+  if (permCheck.action === 'deny') {
+    logDecision(input, {
+      decision: mode === 'hands-free' ? 'deny' : 'escalate',
+      confidence: 'absolute',
+      reasoning: permCheck.reason,
+      model: 'permissions',
+      latencyMs: 0,
+    }, config);
+    // Hands-free: deny with reason. Supervised: escalate to user.
+    writeDenyOrEscalate(permCheck.reason, mode);
+    return;
+  }
+
+  // PreToolUse in supervised mode with no permission match →
+  // pass through (let PermissionRequest handle it)
+  if (hookType === 'PreToolUse' && mode !== 'hands-free') {
+    process.exit(0);
+    return;
   }
 
   try {
