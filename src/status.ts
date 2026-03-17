@@ -46,6 +46,7 @@ export function status(): void {
 
   const config = loadConfig();
   console.log(`  Enabled:  ${config.enabled}`);
+  console.log(`  Mode:     ${config.mode}`);
   console.log(`  Backend:  ${config.backend}`);
   console.log(`  Model:    ${config.model}`);
   console.log(`  Threshold: ${config.confidenceThreshold}`);

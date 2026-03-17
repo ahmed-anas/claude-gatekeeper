@@ -9,6 +9,7 @@ const mockMkdirSync = mkdirSync as jest.MockedFunction<typeof mkdirSync>;
 
 const baseConfig: ApproverConfig = {
   enabled: true,
+  mode: 'allow-or-ask' as const,
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',

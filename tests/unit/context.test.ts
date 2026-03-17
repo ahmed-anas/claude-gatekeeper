@@ -75,6 +75,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,
@@ -102,6 +103,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,
@@ -131,6 +133,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,
@@ -162,6 +165,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,
@@ -186,6 +190,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,
@@ -210,6 +215,7 @@ describe('loadContext', () => {
 
     const config = {
       enabled: true,
+      mode: 'allow-or-ask' as const,
       backend: 'cli' as const,
       model: 'haiku',
       confidenceThreshold: 'high' as const,

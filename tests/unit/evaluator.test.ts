@@ -23,6 +23,7 @@ const mockSpawn = spawn as jest.MockedFunction<typeof spawn>;
 
 const baseConfig: ApproverConfig = {
   enabled: true,
+  mode: 'allow-or-ask' as const,
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',

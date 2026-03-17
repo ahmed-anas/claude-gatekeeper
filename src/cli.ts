@@ -14,6 +14,7 @@ import { main as runHook } from './index';
 import { setup } from './setup';
 import { status } from './status';
 import { uninstall } from './uninstall';
+import { setMode } from './mode';
 
 const program = new Command();
 
@@ -54,6 +55,18 @@ program
       await uninstall();
     } catch (err) {
       console.error(`Uninstall failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('mode [mode-name]')
+  .description('View or switch operating mode (allow-or-ask, hands-free)')
+  .action((modeName?: string) => {
+    try {
+      setMode(modeName);
+    } catch (err) {
+      console.error(`Mode change failed: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
   });

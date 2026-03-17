@@ -44,6 +44,7 @@ export interface EvaluationResult {
 /** Configuration for the approver. */
 export interface ApproverConfig {
   enabled: boolean;
+  mode: GatekeeperMode;
   backend: 'cli' | 'api';
   model: string;
   confidenceThreshold: ConfidenceLevel;
@@ -77,3 +78,7 @@ export interface UserSettings {
 
 /** Static rule check result. */
 export type RuleDecision = 'approve' | 'escalate' | 'evaluate';
+
+/** Operating modes for the gatekeeper. */
+export const GATEKEEPER_MODES = ['allow-or-ask', 'hands-free'] as const;
+export type GatekeeperMode = (typeof GATEKEEPER_MODES)[number];

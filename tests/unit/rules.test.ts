@@ -3,6 +3,7 @@ import { ApproverConfig, HookInput } from '../../src/types';
 
 const baseConfig: ApproverConfig = {
   enabled: true,
+  mode: 'allow-or-ask' as const,
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',

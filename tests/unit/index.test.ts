@@ -48,6 +48,7 @@ const validInput: HookInput = {
 
 const defaultConfig: ApproverConfig = {
   enabled: true,
+  mode: 'allow-or-ask' as const,
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',
