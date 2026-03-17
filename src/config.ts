@@ -20,7 +20,7 @@ const DEFAULT_CONFIG: ApproverConfig = {
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',
-  timeoutMs: 30000,
+  timeoutMs: 60000,
   maxContextLength: 2000,
   logFile: join(homedir(), '.claude', 'claude-gatekeeper', 'decisions.log'),
   logLevel: 'info',
