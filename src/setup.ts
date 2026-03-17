@@ -32,7 +32,39 @@ function checkClaude(): boolean {
   }
 }
 
-function registerHook(binPath: string): { created: boolean; alreadyExists: boolean } {
+function isGatekeeperHook(h: Record<string, unknown>): boolean {
+  return typeof h.command === 'string' && h.command.includes('gatekeeper');
+}
+
+function registerHookType(
+  hooks: Record<string, unknown>,
+  hookType: string,
+  binPath: string
+): boolean {
+  const existing = hooks[hookType];
+  if (Array.isArray(existing)) {
+    const alreadyRegistered = existing.some((entry: Record<string, unknown>) => {
+      const innerHooks = entry.hooks;
+      if (!Array.isArray(innerHooks)) return false;
+      return innerHooks.some(isGatekeeperHook);
+    });
+    if (alreadyRegistered) return false;
+    existing.push(makeHookEntry(binPath));
+  } else {
+    hooks[hookType] = [makeHookEntry(binPath)];
+  }
+  return true;
+}
+
+function makeHookEntry(binPath: string) {
+  return {
+    matcher: '',
+    hooks: [{ type: 'command', command: binPath, timeout: HOOK_TIMEOUT }],
+  };
+}
+
+/** Register both PermissionRequest and PreToolUse hooks. */
+function registerHooks(binPath: string): { permCreated: boolean; preToolCreated: boolean } {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   const settings = readJson(settingsPath) ?? {};
 
@@ -41,39 +73,14 @@ function registerHook(binPath: string): { created: boolean; alreadyExists: boole
   }
   const hooks = settings.hooks as Record<string, unknown>;
 
-  const permReqs = hooks.PermissionRequest;
-  if (Array.isArray(permReqs)) {
-    const alreadyRegistered = permReqs.some((entry: Record<string, unknown>) => {
-      const innerHooks = entry.hooks;
-      if (!Array.isArray(innerHooks)) return false;
-      return innerHooks.some(
-        (h: Record<string, unknown>) => typeof h.command === 'string' && h.command.includes('gatekeeper')
-      );
-    });
-    if (alreadyRegistered) {
-      return { created: false, alreadyExists: true };
-    }
+  const permCreated = registerHookType(hooks, 'PermissionRequest', binPath);
+  const preToolCreated = registerHookType(hooks, 'PreToolUse', binPath);
+
+  if (permCreated || preToolCreated) {
+    writeJson(settingsPath, settings);
   }
 
-  const hookEntry = {
-    matcher: '',
-    hooks: [
-      {
-        type: 'command',
-        command: binPath,
-        timeout: HOOK_TIMEOUT,
-      },
-    ],
-  };
-
-  if (Array.isArray(permReqs)) {
-    permReqs.push(hookEntry);
-  } else {
-    hooks.PermissionRequest = [hookEntry];
-  }
-
-  writeJson(settingsPath, settings);
-  return { created: true, alreadyExists: false };
+  return { permCreated, preToolCreated };
 }
 
 function createConfig(): string {
@@ -112,12 +119,14 @@ export async function setup(): Promise<void> {
     process.exit(1);
   }
 
-  console.log('Registering hook in ~/.claude/settings.json...');
-  const hookResult = registerHook(binPath);
-  if (hookResult.alreadyExists) {
-    console.log('  [ok] Hook already registered\n');
+  console.log('Registering hooks in ~/.claude/settings.json...');
+  const hookResult = registerHooks(binPath);
+  if (!hookResult.permCreated && !hookResult.preToolCreated) {
+    console.log('  [ok] Hooks already registered\n');
   } else {
-    console.log('  [ok] PermissionRequest hook registered\n');
+    if (hookResult.permCreated) console.log('  [ok] PermissionRequest hook registered');
+    if (hookResult.preToolCreated) console.log('  [ok] PreToolUse hook registered');
+    console.log('');
   }
 
   const configPath = join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');

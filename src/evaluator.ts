@@ -32,7 +32,7 @@ export function parseAiResponse(text: string): Pick<EvaluationResult, 'decision'
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.decision === 'approve' || parsed.decision === 'escalate') {
+      if (parsed.decision === 'approve' || parsed.decision === 'escalate' || parsed.decision === 'deny') {
         return {
           decision: parsed.decision,
           confidence: parseConfidence(parsed.confidence),

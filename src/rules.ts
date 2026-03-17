@@ -16,7 +16,7 @@
  * from being hidden in chains like "echo hello && sudo rm -rf /".
  */
 
-import { ApproverConfig, HookInput, RuleDecision } from './types';
+import { ApproverConfig, GatekeeperMode, HookInput, RuleDecision } from './types';
 
 /**
  * Extract the relevant string to match against from a hook input.
@@ -76,27 +76,28 @@ function matchesAnyPattern(value: string, patterns: string[]): boolean {
  * 'escalate' if it matches an always-escalate pattern,
  * 'evaluate' if no static rule matches (needs AI evaluation).
  */
-export function checkRules(input: HookInput, config: ApproverConfig): RuleDecision {
+export function checkRules(input: HookInput, config: ApproverConfig, mode: GatekeeperMode = 'allow-or-ask'): RuleDecision {
   const target = extractMatchTarget(input);
+  const dangerousResult: RuleDecision = mode === 'hands-free' ? 'deny' : 'escalate';
 
   if (input.tool_name === 'Bash') {
     const segments = splitCompoundCommand(target);
-    // If ANY segment matches an escalate pattern, escalate the whole thing
+    // If ANY segment matches an escalate pattern, block the whole thing
     for (const segment of segments) {
       if (matchesAnyPattern(segment, config.alwaysEscalatePatterns)) {
-        return 'escalate';
+        return dangerousResult;
       }
     }
     // Also check the full command (pattern may span segments)
     if (matchesAnyPattern(target, config.alwaysEscalatePatterns)) {
-      return 'escalate';
+      return dangerousResult;
     }
     if (matchesAnyPattern(target, config.alwaysApprovePatterns)) {
       return 'approve';
     }
   } else {
     if (matchesAnyPattern(target, config.alwaysEscalatePatterns)) {
-      return 'escalate';
+      return dangerousResult;
     }
     if (matchesAnyPattern(target, config.alwaysApprovePatterns)) {
       return 'approve';

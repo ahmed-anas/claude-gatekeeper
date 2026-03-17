@@ -7,36 +7,42 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { loadConfig, getConfigPath } from './config';
 
-function isHookRegistered(): { registered: boolean; command?: string } {
+function checkHookType(settings: Record<string, unknown>, hookType: string): boolean {
+  const hooks = (settings as any)?.hooks?.[hookType];
+  if (!Array.isArray(hooks)) return false;
+  return hooks.some((entry: any) =>
+    Array.isArray(entry.hooks) && entry.hooks.some((h: any) =>
+      typeof h.command === 'string' && h.command.includes('gatekeeper')
+    )
+  );
+}
+
+function getHookStatus(): { permissionRequest: boolean; preToolUse: boolean } {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   try {
     const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
-    const permReqs = settings?.hooks?.PermissionRequest;
-    if (!Array.isArray(permReqs)) return { registered: false };
-
-    for (const entry of permReqs) {
-      if (!Array.isArray(entry.hooks)) continue;
-      for (const h of entry.hooks) {
-        if (typeof h.command === 'string' && h.command.includes('gatekeeper')) {
-          return { registered: true, command: h.command };
-        }
-      }
-    }
+    return {
+      permissionRequest: checkHookType(settings, 'PermissionRequest'),
+      preToolUse: checkHookType(settings, 'PreToolUse'),
+    };
   } catch {
+    return { permissionRequest: false, preToolUse: false };
   }
-  return { registered: false };
 }
 
 export function status(): void {
   console.log('\nClaude Gatekeeper Status');
   console.log('=======================\n');
 
-  const hook = isHookRegistered();
-  if (hook.registered) {
-    console.log(`  Hook:     registered`);
-    console.log(`  Command:  ${hook.command}`);
+  const hooks = getHookStatus();
+  if (hooks.permissionRequest && hooks.preToolUse) {
+    console.log('  Hooks:    both registered');
+  } else if (hooks.permissionRequest) {
+    console.log('  Hooks:    PermissionRequest only (run setup to add PreToolUse)');
+  } else if (hooks.preToolUse) {
+    console.log('  Hooks:    PreToolUse only (run setup to add PermissionRequest)');
   } else {
-    console.log('  Hook:     NOT registered');
+    console.log('  Hooks:    NOT registered');
     console.log('            Run `claude-gatekeeper setup` to register.');
   }
 

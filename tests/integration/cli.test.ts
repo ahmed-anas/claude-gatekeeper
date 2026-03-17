@@ -79,21 +79,21 @@ describe('CLI: setup', () => {
     rmSync(tmpHome, { recursive: true, force: true });
   });
 
-  it('registers hook in settings.json', async () => {
-    // Answer "no" to config and policy prompts
+  it('registers both hooks in settings.json', async () => {
     const result = await runCli(['setup'], { HOME: tmpHome }, 'n\nn\n');
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('PermissionRequest hook registered');
+    expect(result.stdout).toContain('PreToolUse hook registered');
 
     const settingsPath = join(tmpHome, '.claude', 'settings.json');
     expect(existsSync(settingsPath)).toBe(true);
 
     const settings = readJson(settingsPath);
-    const permReqs = (settings.hooks as any).PermissionRequest;
-    expect(permReqs).toHaveLength(1);
-    expect(permReqs[0].hooks[0].command).toContain('gatekeeper');
-    expect(permReqs[0].hooks[0].timeout).toBe(15000);
-    expect(permReqs[0].matcher).toBe('');
+    const hooks = settings.hooks as any;
+    expect(hooks.PermissionRequest).toHaveLength(1);
+    expect(hooks.PermissionRequest[0].hooks[0].command).toContain('gatekeeper');
+    expect(hooks.PreToolUse).toHaveLength(1);
+    expect(hooks.PreToolUse[0].hooks[0].command).toContain('gatekeeper');
   });
 
   it('preserves existing hooks when registering', async () => {
@@ -117,7 +117,7 @@ describe('CLI: setup', () => {
     await runCli(['setup'], { HOME: tmpHome }, 'n\nn\n');
     const result = await runCli(['setup'], { HOME: tmpHome }, 'n\nn\n');
 
-    expect(result.stdout).toContain('Hook already registered');
+    expect(result.stdout).toContain('Hooks already registered');
 
     const settings = readJson(join(tmpHome, '.claude', 'settings.json'));
     const permReqs = (settings.hooks as any).PermissionRequest;
@@ -175,11 +175,12 @@ describe('CLI: uninstall', () => {
     // Then uninstall — "no" to delete config dir
     const result = await runCli(['uninstall'], { HOME: tmpHome }, 'n\n');
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Hook removed');
+    expect(result.stdout).toContain('Hooks removed');
 
     const settings = readJson(join(tmpHome, '.claude', 'settings.json'));
     const hooks = settings.hooks as any;
     expect(hooks.PermissionRequest).toBeUndefined();
+    expect(hooks.PreToolUse).toBeUndefined();
   });
 
   it('preserves other hooks when removing gatekeeper', async () => {

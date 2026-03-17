@@ -12,18 +12,11 @@ import { homedir } from 'os';
 import { readJson, writeJson } from './fs-utils';
 import { ask, closePrompt } from './cli-prompt';
 
-function removeHook(): boolean {
-  const settingsPath = join(homedir(), '.claude', 'settings.json');
-  const settings = readJson(settingsPath);
-  if (!settings) return false;
+function removeHookType(hooks: Record<string, unknown>, hookType: string): boolean {
+  const entries = hooks[hookType];
+  if (!Array.isArray(entries)) return false;
 
-  const hooks = settings.hooks as Record<string, unknown> | undefined;
-  if (!hooks) return false;
-
-  const permReqs = hooks.PermissionRequest;
-  if (!Array.isArray(permReqs)) return false;
-
-  const filtered = permReqs.filter((entry: Record<string, unknown>) => {
+  const filtered = entries.filter((entry: Record<string, unknown>) => {
     const innerHooks = entry.hooks;
     if (!Array.isArray(innerHooks)) return true;
     return !innerHooks.some(
@@ -31,27 +24,42 @@ function removeHook(): boolean {
     );
   });
 
-  if (filtered.length === permReqs.length) return false;
+  if (filtered.length === entries.length) return false;
 
   if (filtered.length === 0) {
-    delete hooks.PermissionRequest;
+    delete hooks[hookType];
   } else {
-    hooks.PermissionRequest = filtered;
+    hooks[hookType] = filtered;
   }
-
-  writeJson(settingsPath, settings);
   return true;
+}
+
+function removeHooks(): boolean {
+  const settingsPath = join(homedir(), '.claude', 'settings.json');
+  const settings = readJson(settingsPath);
+  if (!settings) return false;
+
+  const hooks = settings.hooks as Record<string, unknown> | undefined;
+  if (!hooks) return false;
+
+  const removedPerm = removeHookType(hooks, 'PermissionRequest');
+  const removedPreTool = removeHookType(hooks, 'PreToolUse');
+
+  if (removedPerm || removedPreTool) {
+    writeJson(settingsPath, settings);
+  }
+  return removedPerm || removedPreTool;
 }
 
 export async function uninstall(): Promise<void> {
   console.log('\nClaude Gatekeeper Uninstall');
   console.log('==========================\n');
 
-  const removed = removeHook();
+  const removed = removeHooks();
   if (removed) {
-    console.log('  [ok] Hook removed from ~/.claude/settings.json');
+    console.log('  [ok] Hooks removed from ~/.claude/settings.json');
   } else {
-    console.log('  [--] Hook not found in ~/.claude/settings.json (already removed)');
+    console.log('  [--] Hooks not found in ~/.claude/settings.json (already removed)');
   }
 
   const configDir = join(homedir(), '.claude', 'claude-gatekeeper');

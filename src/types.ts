@@ -10,20 +10,20 @@ export function meetsThreshold(level: ConfidenceLevel, threshold: ConfidenceLeve
   return CONFIDENCE_LEVELS.indexOf(level) >= CONFIDENCE_LEVELS.indexOf(threshold);
 }
 
-/** JSON structure received on stdin from Claude Code's PermissionRequest hook. */
+/** JSON structure received on stdin from Claude Code hooks. */
 export interface HookInput {
   session_id: string;
   transcript_path?: string;
   cwd: string;
-  hook_event_name: 'PermissionRequest';
+  hook_event_name: 'PermissionRequest' | 'PreToolUse';
   tool_name: string;
   tool_input: Record<string, unknown>;
   tool_use_id?: string;
   permission_mode?: string;
 }
 
-/** JSON structure written to stdout for Claude Code to consume. */
-export interface HookOutput {
+/** PermissionRequest output — approve only. */
+export interface PermissionRequestOutput {
   hookSpecificOutput: {
     hookEventName: 'PermissionRequest';
     decision: {
@@ -32,9 +32,18 @@ export interface HookOutput {
   };
 }
 
+/** PreToolUse output — approve or deny with reason. */
+export interface PreToolUseOutput {
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse';
+    permissionDecision: 'allow' | 'deny';
+    permissionDecisionReason?: string;
+  };
+}
+
 /** AI evaluation result. */
 export interface EvaluationResult {
-  decision: 'approve' | 'escalate';
+  decision: 'approve' | 'escalate' | 'deny';
   confidence: ConfidenceLevel;
   reasoning: string;
   model: string;
@@ -77,7 +86,7 @@ export interface UserSettings {
 }
 
 /** Static rule check result. */
-export type RuleDecision = 'approve' | 'escalate' | 'evaluate';
+export type RuleDecision = 'approve' | 'escalate' | 'deny' | 'evaluate';
 
 /** Operating modes for the gatekeeper. */
 export const GATEKEEPER_MODES = ['allow-or-ask', 'hands-free'] as const;

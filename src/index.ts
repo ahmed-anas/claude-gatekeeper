@@ -1,31 +1,35 @@
 /**
  * Main entry point for the Claude Gatekeeper hook.
  *
- * This module reads a PermissionRequest JSON from stdin, evaluates it
- * through a layered pipeline (static rules → AI), and writes an approval
- * JSON to stdout or exits silently to escalate to the user.
+ * Handles both hook types:
+ * - PermissionRequest: approve safe commands, escalate uncertain ones
+ * - PreToolUse (hands-free mode): approve safe commands, deny dangerous ones
  *
- * Safety invariant: every code path either writes approval JSON + exits 0,
- * or exits 0 with no output (escalation). The hook NEVER auto-denies.
+ * Safety invariant:
+ * - Supervised mode: errors → escalate (exit 0, no output)
+ * - Hands-free mode: errors → deny (fail-closed, no human to ask)
  */
 
 import { readFileSync } from 'fs';
-import { ApproverConfig, EvaluationResult, HookInput, HookOutput, meetsThreshold } from './types';
+import {
+  ApproverConfig, EvaluationResult, GatekeeperMode, HookInput,
+  PermissionRequestOutput, PreToolUseOutput, meetsThreshold,
+} from './types';
 import { loadConfig } from './config';
 import { loadContext } from './context';
 import { buildPrompt } from './prompt';
 import { evaluate } from './evaluator';
 import { checkRules } from './rules';
-import { logDecision, logError, logWarning } from './logger';
+import { logDecision, logError } from './logger';
 
-/** Read all of stdin synchronously. Uses /dev/stdin for speed (no async overhead). */
+const DENY_PREFIX = 'This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands.';
+
 export function readStdin(): string {
   return readFileSync('/dev/stdin', 'utf-8').trim();
 }
 
-/** Write the approval JSON to stdout. This is the only way we auto-approve. */
-export function writeApproval(): void {
-  const output: HookOutput = {
+export function writePermissionApproval(): void {
+  const output: PermissionRequestOutput = {
     hookSpecificOutput: {
       hookEventName: 'PermissionRequest',
       decision: { behavior: 'allow' },
@@ -34,11 +38,49 @@ export function writeApproval(): void {
   process.stdout.write(JSON.stringify(output));
 }
 
-/** Every error path results in escalation (exit 0, no output). */
+export function writePreToolUseAllow(): void {
+  const output: PreToolUseOutput = {
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'allow',
+    },
+  };
+  process.stdout.write(JSON.stringify(output));
+}
+
+export function writePreToolUseDeny(reason: string): void {
+  const output: PreToolUseOutput = {
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'deny',
+      permissionDecisionReason: `${DENY_PREFIX} Reason: ${reason}. You may attempt alternative commands.`,
+    },
+  };
+  process.stdout.write(JSON.stringify(output));
+}
+
+function writeApproval(hookType: 'PermissionRequest' | 'PreToolUse'): void {
+  if (hookType === 'PreToolUse') {
+    writePreToolUseAllow();
+  } else {
+    writePermissionApproval();
+  }
+}
+
+function writeDenyOrEscalate(reason: string, mode: GatekeeperMode): void {
+  if (mode === 'hands-free') {
+    writePreToolUseDeny(reason);
+  } else {
+    // Supervised mode: escalate by exiting silently
+    process.exit(0);
+  }
+}
+
 export async function main(): Promise<void> {
   let input: HookInput;
   let config: ApproverConfig;
 
+  // Parse errors → always escalate (don't deny on hook bugs)
   try {
     const raw = readStdin();
     input = JSON.parse(raw) as HookInput;
@@ -59,11 +101,20 @@ export async function main(): Promise<void> {
     return;
   }
 
+  const hookType = input.hook_event_name;
+  const mode = config.mode;
+
+  // PreToolUse in supervised mode → pass through (let PermissionRequest handle it)
+  if (hookType === 'PreToolUse' && mode !== 'hands-free') {
+    process.exit(0);
+    return;
+  }
+
   try {
-    const staticDecision = checkRules(input, config);
+    const staticDecision = checkRules(input, config, mode);
 
     if (staticDecision === 'approve') {
-      writeApproval();
+      writeApproval(hookType);
       logDecision(input, {
         decision: 'approve',
         confidence: 'absolute',
@@ -74,41 +125,46 @@ export async function main(): Promise<void> {
       return;
     }
 
-    if (staticDecision === 'escalate') {
+    if (staticDecision === 'escalate' || staticDecision === 'deny') {
+      const reasoning = 'Matched always-escalate pattern';
       logDecision(input, {
-        decision: 'escalate',
+        decision: staticDecision,
         confidence: 'absolute',
-        reasoning: 'Matched always-escalate pattern',
+        reasoning,
         model: 'static',
         latencyMs: 0,
       }, config);
-      process.exit(0);
+      writeDenyOrEscalate(reasoning, mode);
       return;
     }
 
+    // AI evaluation
     const context = loadContext(input.cwd, config);
-    const { systemPrompt, userMessage } = buildPrompt(input, context);
+    const { systemPrompt, userMessage } = buildPrompt(input, context, mode);
     const result = await evaluate(systemPrompt, userMessage, config);
 
     logDecision(input, result, config);
 
     if (result.decision === 'approve' && meetsThreshold(result.confidence, config.confidenceThreshold)) {
-      writeApproval();
+      writeApproval(hookType);
     } else {
-      process.exit(0);
+      writeDenyOrEscalate(result.reasoning, mode);
     }
   } catch (error) {
-    // Unhandled error = escalate (fail-safe)
     try {
       logError(input, error, config);
     } catch {
-      // Can't even log — just escalate silently
+      // Can't even log
     }
-    process.exit(0);
+    // Hands-free: deny on error (fail-closed). Supervised: escalate.
+    if (mode === 'hands-free') {
+      writePreToolUseDeny('Internal error — blocked for safety');
+    } else {
+      process.exit(0);
+    }
   }
 }
 
-// Auto-run when executed directly (not when imported for testing)
 if (require.main === module) {
   main().catch(() => process.exit(0));
 }

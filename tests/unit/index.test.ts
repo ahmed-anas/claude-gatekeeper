@@ -5,7 +5,7 @@
  * in isolation. Each test exercises a specific code path through main().
  */
 
-import { HookInput, HookOutput, ApproverConfig } from '../../src/types';
+import { HookInput, PermissionRequestOutput, PreToolUseOutput, ApproverConfig } from '../../src/types';
 
 // Mock all dependencies before importing the module under test
 jest.mock('fs', () => ({ readFileSync: jest.fn() }));
@@ -27,7 +27,7 @@ import { buildPrompt } from '../../src/prompt';
 import { evaluate } from '../../src/evaluator';
 import { checkRules } from '../../src/rules';
 import { logDecision, logError } from '../../src/logger';
-import { main, writeApproval } from '../../src/index';
+import { main, writePermissionApproval, writePreToolUseAllow, writePreToolUseDeny } from '../../src/index';
 
 const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
 const mockLoadConfig = loadConfig as jest.MockedFunction<typeof loadConfig>;
@@ -275,23 +275,44 @@ describe('main()', () => {
     expect(mockLoadContext).toHaveBeenCalledWith('/project', defaultConfig);
 
     // Verify prompt was built with the loaded context
-    expect(mockBuildPrompt).toHaveBeenCalledWith(validInput, emptyContext);
+    expect(mockBuildPrompt).toHaveBeenCalledWith(validInput, emptyContext, 'allow-or-ask');
 
     // Verify evaluator was called with the built prompt
     expect(mockEvaluate).toHaveBeenCalledWith('sys', 'usr', defaultConfig);
   });
 });
 
-describe('writeApproval()', () => {
-  it('writes correct HookOutput JSON to stdout', () => {
+describe('writePermissionApproval()', () => {
+  it('writes correct PermissionRequest allow JSON', () => {
     const spy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
-
-    writeApproval();
-
-    const output = JSON.parse(spy.mock.calls[0][0] as string) as HookOutput;
+    writePermissionApproval();
+    const output = JSON.parse(spy.mock.calls[0][0] as string) as PermissionRequestOutput;
     expect(output.hookSpecificOutput.hookEventName).toBe('PermissionRequest');
     expect(output.hookSpecificOutput.decision.behavior).toBe('allow');
+    spy.mockRestore();
+  });
+});
 
+describe('writePreToolUseAllow()', () => {
+  it('writes correct PreToolUse allow JSON', () => {
+    const spy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    writePreToolUseAllow();
+    const output = JSON.parse(spy.mock.calls[0][0] as string) as PreToolUseOutput;
+    expect(output.hookSpecificOutput.hookEventName).toBe('PreToolUse');
+    expect(output.hookSpecificOutput.permissionDecision).toBe('allow');
+    spy.mockRestore();
+  });
+});
+
+describe('writePreToolUseDeny()', () => {
+  it('writes correct PreToolUse deny JSON with reason', () => {
+    const spy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    writePreToolUseDeny('too dangerous');
+    const output = JSON.parse(spy.mock.calls[0][0] as string) as PreToolUseOutput;
+    expect(output.hookSpecificOutput.hookEventName).toBe('PreToolUse');
+    expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
+    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('too dangerous');
+    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('Claude Gatekeeper');
     spy.mockRestore();
   });
 });

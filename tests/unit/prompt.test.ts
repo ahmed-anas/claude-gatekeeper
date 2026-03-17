@@ -1,4 +1,4 @@
-import { buildPrompt, SYSTEM_PROMPT, summarizePermissions, buildUserMessage } from '../../src/prompt';
+import { buildPrompt, SYSTEM_PROMPT_SUPERVISED, summarizePermissions, buildUserMessage } from '../../src/prompt';
 import { HookInput, PromptContext } from '../../src/types';
 
 const baseInput: HookInput = {
@@ -18,18 +18,18 @@ const emptyContext: PromptContext = {
   projectApprovalPolicy: null,
 };
 
-describe('SYSTEM_PROMPT', () => {
+describe('SYSTEM_PROMPT_SUPERVISED', () => {
   it('contains key instructions', () => {
-    expect(SYSTEM_PROMPT).toContain('security evaluator');
-    expect(SYSTEM_PROMPT).toContain('APPROVE');
-    expect(SYSTEM_PROMPT).toContain('ESCALATE');
-    expect(SYSTEM_PROMPT).toContain('NEVER deny');
-    expect(SYSTEM_PROMPT).toContain('JSON');
+    expect(SYSTEM_PROMPT_SUPERVISED).toContain('security evaluator');
+    expect(SYSTEM_PROMPT_SUPERVISED).toContain('APPROVE');
+    expect(SYSTEM_PROMPT_SUPERVISED).toContain('ESCALATE');
+    expect(SYSTEM_PROMPT_SUPERVISED).toContain('NEVER deny');
+    expect(SYSTEM_PROMPT_SUPERVISED).toContain('JSON');
   });
 
   it('documents all confidence levels in the response format', () => {
     for (const level of ['none', 'low', 'medium', 'high', 'absolute']) {
-      expect(SYSTEM_PROMPT).toContain(`"${level}"`);
+      expect(SYSTEM_PROMPT_SUPERVISED).toContain(`"${level}"`);
     }
   });
 });
@@ -120,7 +120,7 @@ describe('buildUserMessage', () => {
 describe('buildPrompt', () => {
   it('returns both system prompt and user message', () => {
     const { systemPrompt, userMessage } = buildPrompt(baseInput, emptyContext);
-    expect(systemPrompt).toBe(SYSTEM_PROMPT);
+    expect(systemPrompt).toBe(SYSTEM_PROMPT_SUPERVISED);
     expect(userMessage).toContain('Tool: Bash');
   });
 });
