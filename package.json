@@ -6,6 +6,26 @@
   "bin": {
     "claude-gatekeeper": "./bin/gatekeeper"
   },
+  "files": [
+    "dist/",
+    "bin/",
+    "templates/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmed-anas/claude-gatekeeper.git"
+  },
+  "homepage": "https://github.com/ahmed-anas/claude-gatekeeper#readme",
+  "license": "MIT",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "hooks",
+    "permissions",
+    "ai",
+    "gatekeeper",
+    "security"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
