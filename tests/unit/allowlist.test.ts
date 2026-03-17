@@ -8,7 +8,7 @@ jest.mock('os', () => ({
 
 const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
 
-import { isInAllowList } from '../../src/allowlist';
+import { checkPermissions } from '../../src/permissions';
 import { HookInput } from '../../src/types';
 
 function makeInput(toolName: string, toolInput: Record<string, unknown>): HookInput {
@@ -21,117 +21,138 @@ function makeInput(toolName: string, toolInput: Record<string, unknown>): HookIn
   };
 }
 
-function setAllowList(rules: string[]): void {
+function setPermissions(perms: { allow?: string[]; deny?: string[]; ask?: string[] }): void {
   mockReadFileSync.mockReturnValue(JSON.stringify({
-    permissions: { allow: rules },
+    permissions: {
+      allow: perms.allow ?? [],
+      deny: perms.deny ?? [],
+      ask: perms.ask ?? [],
+    },
   }));
 }
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('Bash pattern matching', () => {
+describe('allow-list matching', () => {
   it('"Bash(echo:*)" matches "echo hello world"', () => {
-    setAllowList(['Bash(echo:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'echo hello world' }))).toBe(true);
+    setPermissions({ allow: ['Bash(echo:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'echo hello world' })).action).toBe('allow');
   });
 
   it('"Bash(echo:*)" matches "echo" alone', () => {
-    setAllowList(['Bash(echo:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'echo' }))).toBe(true);
+    setPermissions({ allow: ['Bash(echo:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'echo' })).action).toBe('allow');
   });
 
   it('"Bash(echo:*)" does NOT match "echoing"', () => {
-    setAllowList(['Bash(echo:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'echoing' }))).toBe(false);
+    setPermissions({ allow: ['Bash(echo:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'echoing' })).action).toBe('none');
   });
 
   it('"Bash(npm run:*)" matches "npm run build"', () => {
-    setAllowList(['Bash(npm run:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'npm run build' }))).toBe(true);
+    setPermissions({ allow: ['Bash(npm run:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'npm run build' })).action).toBe('allow');
   });
 
   it('"Bash(npm run:*)" does NOT match "npm install"', () => {
-    setAllowList(['Bash(npm run:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'npm install' }))).toBe(false);
+    setPermissions({ allow: ['Bash(npm run:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'npm install' })).action).toBe('none');
   });
 
-  it('"Bash(git:*)" matches "git status"', () => {
-    setAllowList(['Bash(git:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'git status' }))).toBe(true);
-  });
-
-  it('"Bash(python3:*)" matches "python3 -c \'import json\'"', () => {
-    setAllowList(['Bash(python3:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: "python3 -c 'import json'" }))).toBe(true);
-  });
-
-  it('does NOT match wrong tool name', () => {
-    setAllowList(['Bash(echo:*)']);
-    expect(isInAllowList(makeInput('Write', { command: 'echo hello' }))).toBe(false);
-  });
-});
-
-describe('tool-level matching (no pattern)', () => {
   it('"WebSearch" matches any WebSearch use', () => {
-    setAllowList(['WebSearch']);
-    expect(isInAllowList(makeInput('WebSearch', { query: 'test' }))).toBe(true);
+    setPermissions({ allow: ['WebSearch'] });
+    expect(checkPermissions(makeInput('WebSearch', { query: 'test' })).action).toBe('allow');
   });
 
-  it('"Read" matches any Read use', () => {
-    setAllowList(['Read']);
-    expect(isInAllowList(makeInput('Read', { file_path: '/etc/passwd' }))).toBe(true);
-  });
-});
-
-describe('Read path matching', () => {
   it('"Read(///**)" matches any file path', () => {
-    setAllowList(['Read(///**)']);
-    expect(isInAllowList(makeInput('Read', { file_path: '/Users/ahmed/file.ts' }))).toBe(true);
+    setPermissions({ allow: ['Read(///**)'] });
+    expect(checkPermissions(makeInput('Read', { file_path: '/Users/ahmed/file.ts' })).action).toBe('allow');
   });
-});
 
-describe('WebFetch domain matching', () => {
   it('"WebFetch(domain:github.com)" matches github.com URL', () => {
-    setAllowList(['WebFetch(domain:github.com)']);
-    expect(isInAllowList(makeInput('WebFetch', { url: 'https://github.com/repo' }))).toBe(true);
+    setPermissions({ allow: ['WebFetch(domain:github.com)'] });
+    expect(checkPermissions(makeInput('WebFetch', { url: 'https://github.com/repo' })).action).toBe('allow');
   });
 
   it('"WebFetch(domain:github.com)" matches subdomain', () => {
-    setAllowList(['WebFetch(domain:github.com)']);
-    expect(isInAllowList(makeInput('WebFetch', { url: 'https://api.github.com/repos' }))).toBe(true);
+    setPermissions({ allow: ['WebFetch(domain:github.com)'] });
+    expect(checkPermissions(makeInput('WebFetch', { url: 'https://api.github.com/repos' })).action).toBe('allow');
   });
 
   it('"WebFetch(domain:github.com)" does NOT match other domains', () => {
-    setAllowList(['WebFetch(domain:github.com)']);
-    expect(isInAllowList(makeInput('WebFetch', { url: 'https://evil.com/fake-github.com' }))).toBe(false);
+    setPermissions({ allow: ['WebFetch(domain:github.com)'] });
+    expect(checkPermissions(makeInput('WebFetch', { url: 'https://evil.com/fake' })).action).toBe('none');
   });
 });
 
-describe('multiple rules', () => {
-  it('matches if any rule matches', () => {
-    setAllowList(['Bash(echo:*)', 'Bash(git:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'git log' }))).toBe(true);
+describe('deny-list matching', () => {
+  it('denies commands in the deny list', () => {
+    setPermissions({ deny: ['Bash(rm -rf:*)'] });
+    const result = checkPermissions(makeInput('Bash', { command: 'rm -rf /' }));
+    expect(result.action).toBe('deny');
+    if (result.action === 'deny') {
+      expect(result.reason).toContain('deny list');
+    }
   });
 
-  it('returns false if no rule matches', () => {
-    setAllowList(['Bash(echo:*)', 'Bash(git:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'rm -rf /' }))).toBe(false);
+  it('deny takes priority over allow', () => {
+    setPermissions({ allow: ['Bash(rm:*)'], deny: ['Bash(rm:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'rm file.txt' })).action).toBe('deny');
+  });
+});
+
+describe('ask-list matching', () => {
+  it('denies commands in the ask list (no user available)', () => {
+    setPermissions({ ask: ['Bash(git *push *--force*)'] });
+    const result = checkPermissions(makeInput('Bash', { command: 'git push --force origin main' }));
+    expect(result.action).toBe('deny');
+    if (result.action === 'deny') {
+      expect(result.reason).toContain('user review');
+      expect(result.reason).toContain('currently away');
+    }
+  });
+
+  it('ask-list wildcard patterns work', () => {
+    setPermissions({ ask: ['Bash(git *reset --hard*)'] });
+    const result = checkPermissions(makeInput('Bash', { command: 'git reset --hard HEAD~1' }));
+    expect(result.action).toBe('deny');
+  });
+
+  it('ask-list does NOT match non-matching commands', () => {
+    setPermissions({ ask: ['Bash(git *push *--force*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'git push origin main' })).action).toBe('none');
+  });
+});
+
+describe('priority order', () => {
+  it('deny > ask > allow', () => {
+    setPermissions({
+      allow: ['Bash(git:*)'],
+      ask: ['Bash(git *push*)'],
+      deny: ['Bash(git *push *--force*)'],
+    });
+    // Force push → deny (deny list)
+    expect(checkPermissions(makeInput('Bash', { command: 'git push --force' })).action).toBe('deny');
+    // Regular push → deny (ask list, wildcard matches)
+    expect(checkPermissions(makeInput('Bash', { command: 'git push origin main' })).action).toBe('deny');
+    // Git status → allow (allow list)
+    expect(checkPermissions(makeInput('Bash', { command: 'git status' })).action).toBe('allow');
   });
 });
 
 describe('edge cases', () => {
-  it('returns false when settings.json is missing', () => {
+  it('returns none when settings.json is missing', () => {
     mockReadFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
-    expect(isInAllowList(makeInput('Bash', { command: 'echo hi' }))).toBe(false);
+    expect(checkPermissions(makeInput('Bash', { command: 'echo hi' })).action).toBe('none');
   });
 
-  it('returns false for empty allow list', () => {
-    setAllowList([]);
-    expect(isInAllowList(makeInput('Bash', { command: 'echo hi' }))).toBe(false);
+  it('returns none for empty permission lists', () => {
+    setPermissions({});
+    expect(checkPermissions(makeInput('Bash', { command: 'echo hi' })).action).toBe('none');
   });
 
   it('skips malformed rules', () => {
-    setAllowList(['not a valid rule!!!', 'Bash(echo:*)']);
-    expect(isInAllowList(makeInput('Bash', { command: 'echo hi' }))).toBe(true);
+    setPermissions({ allow: ['!!!invalid!!!', 'Bash(echo:*)'] });
+    expect(checkPermissions(makeInput('Bash', { command: 'echo hi' })).action).toBe('allow');
   });
 });

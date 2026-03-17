@@ -21,7 +21,7 @@ import { buildPrompt } from './prompt';
 import { evaluate } from './evaluator';
 import { checkRules } from './rules';
 import { logDecision, logError } from './logger';
-import { isInAllowList } from './allowlist';
+import { checkPermissions } from './permissions';
 
 const DENY_PREFIX = 'This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands.';
 
@@ -111,12 +111,25 @@ export async function main(): Promise<void> {
     return;
   }
 
-  // Skip evaluation for commands already in the user's Claude Code allow-list.
-  // PreToolUse fires before Claude's own permission check, so we replicate it
-  // to avoid unnecessary AI calls and incorrect denials.
-  if (hookType === 'PreToolUse' && isInAllowList(input)) {
-    process.exit(0);
-    return;
+  // Check the user's Claude Code permission lists (allow/deny/ask).
+  // PreToolUse fires before Claude's own permission check, so we replicate it.
+  if (hookType === 'PreToolUse') {
+    const permCheck = checkPermissions(input);
+    if (permCheck.action === 'allow') {
+      process.exit(0);
+      return;
+    }
+    if (permCheck.action === 'deny') {
+      writePreToolUseDeny(permCheck.reason);
+      logDecision(input, {
+        decision: 'deny',
+        confidence: 'absolute',
+        reasoning: permCheck.reason,
+        model: 'permissions',
+        latencyMs: 0,
+      }, config);
+      return;
+    }
   }
 
   try {
