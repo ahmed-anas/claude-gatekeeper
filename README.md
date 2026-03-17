@@ -61,6 +61,41 @@ To also remove the CLI:
 npm uninstall -g claude-gatekeeper
 ```
 
+## Modes
+
+Claude Gatekeeper supports multiple operating modes. Switch with:
+
+```bash
+claude-gatekeeper mode              # show current mode
+claude-gatekeeper mode hands-free   # switch to hands-free
+claude-gatekeeper mode allow-or-ask # switch to allow-or-ask
+```
+
+### How each mode handles commands
+
+| User's permission list | allow-or-ask (default) | hands-free | full (coming soon) |
+|------------------------|----------------------|------------|-------------------|
+| **allow list** | pass through | pass through | approve |
+| **deny list** | ask user | deny with reason | deny |
+| **ask list** | ask user | deny with reason | ask user |
+| **not in any list** | AI → approve or ask | AI → approve or deny | AI → approve, deny, or ask |
+| **error/timeout** | ask user | deny (fail-closed) | ask user |
+
+### allow-or-ask (default)
+
+Safe commands are auto-approved by AI. Everything else shows the normal permission prompt. The user is always in the loop for uncertain decisions.
+
+### hands-free
+
+No user interaction required. Safe commands are auto-approved, dangerous ones are **denied with a reason** that Claude can read and adjust to. Ideal for unattended/automated workflows.
+
+When a command is denied, Claude receives a message like:
+> *"This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands. Reason: [explanation]. You may attempt alternative commands."*
+
+### full (coming soon)
+
+Full autonomous mode with extended capabilities. Not yet implemented.
+
 ## AI Backend
 
 ### Default: `claude -p` (zero config)
