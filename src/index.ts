@@ -22,6 +22,7 @@ import { evaluate } from './evaluator';
 import { checkRules } from './rules';
 import { logDecision, logError } from './logger';
 import { checkPermissions } from './permissions';
+import { resolveProjectDir } from './project-dir';
 
 const DENY_PREFIX = 'This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands.';
 
@@ -165,7 +166,8 @@ export async function main(): Promise<void> {
     }
 
     // AI evaluation
-    const context = loadContext(input.cwd, config);
+    const projectDir = resolveProjectDir(input);
+    const context = loadContext(projectDir, config);
     const { systemPrompt, userMessage } = buildPrompt(input, context, mode);
     const result = await evaluate(systemPrompt, userMessage, config);
 
