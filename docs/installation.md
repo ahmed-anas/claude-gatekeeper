@@ -30,7 +30,7 @@ Add the PermissionRequest hook to your `~/.claude/settings.json`:
           {
             "type": "command",
             "command": "/absolute/path/to/claude-gatekeeper/bin/gatekeeper",
-            "timeout": 60000
+            "timeout": 90000
           }
         ]
       }
@@ -42,7 +42,7 @@ Add the PermissionRequest hook to your `~/.claude/settings.json`:
 **Important:**
 - Use the **absolute path** to the `bin/gatekeeper` script
 - The empty `matcher` (`""`) matches all tools — the hook fires for every permission prompt
-- The `timeout` of 60000ms (60s) gives the AI enough time to evaluate. If it times out, the normal prompt appears.
+- The `timeout` of 90000ms (90s) gives the AI enough time to evaluate (includes one retry on timeout). If it times out, the normal prompt appears.
 
 If you already have a `hooks` section, merge the `PermissionRequest` key into it.
 
@@ -79,7 +79,7 @@ After:
           {
             "type": "command",
             "command": "/absolute/path/to/claude-gatekeeper/bin/gatekeeper",
-            "timeout": 60000
+            "timeout": 90000
           }
         ]
       }

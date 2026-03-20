@@ -177,16 +177,25 @@ export async function evaluateWithApi(
   }
 }
 
+function isTimeout(result: EvaluationResult): boolean {
+  return result.decision === 'escalate' && result.reasoning.includes('timed out');
+}
+
 export async function evaluate(
   systemPrompt: string,
   userMessage: string,
   config: ApproverConfig
 ): Promise<EvaluationResult> {
-  if (config.backend === 'api') {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return evaluateWithCli(systemPrompt, userMessage, config);
+  const run = () => {
+    if (config.backend === 'api' && process.env.ANTHROPIC_API_KEY) {
+      return evaluateWithApi(systemPrompt, userMessage, config);
     }
-    return evaluateWithApi(systemPrompt, userMessage, config);
+    return evaluateWithCli(systemPrompt, userMessage, config);
+  };
+
+  const result = await run();
+  if (isTimeout(result)) {
+    return run();
   }
-  return evaluateWithCli(systemPrompt, userMessage, config);
+  return result;
 }

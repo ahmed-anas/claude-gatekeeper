@@ -73,9 +73,9 @@ describe('mergeConfig', () => {
     expect(mergeConfig({ confidenceThreshold: 0.85 as any }).confidenceThreshold).toBe('high'); // numeric rejected
   });
 
-  it('clamps timeoutMs to [1000, 60000]', () => {
+  it('clamps timeoutMs to [1000, 120000]', () => {
     expect(mergeConfig({ timeoutMs: 100 }).timeoutMs).toBe(1000);
-    expect(mergeConfig({ timeoutMs: 100000 }).timeoutMs).toBe(60000);
+    expect(mergeConfig({ timeoutMs: 200000 }).timeoutMs).toBe(120000);
     expect(mergeConfig({ timeoutMs: 5000 }).timeoutMs).toBe(5000);
   });
 

@@ -20,7 +20,7 @@ const DEFAULT_CONFIG: ApproverConfig = {
   backend: 'cli',
   model: 'haiku',
   confidenceThreshold: 'high',
-  timeoutMs: 60000,
+  timeoutMs: 90000,
   maxContextLength: 2000,
   logFile: join(homedir(), '.claude', 'claude-gatekeeper', 'decisions.log'),
   logLevel: 'info',
@@ -83,7 +83,7 @@ export function mergeConfig(userConfig: Partial<ApproverConfig>): ApproverConfig
     merged.confidenceThreshold = DEFAULT_CONFIG.confidenceThreshold;
   }
   if (merged.timeoutMs < 1000) merged.timeoutMs = 1000;
-  if (merged.timeoutMs > 60000) merged.timeoutMs = 60000;
+  if (merged.timeoutMs > 120000) merged.timeoutMs = 120000;
   if (merged.maxContextLength < 0) merged.maxContextLength = 0;
 
   if (!GATEKEEPER_MODES.includes(merged.mode as GatekeeperMode)) merged.mode = DEFAULT_CONFIG.mode;
