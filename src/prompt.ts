@@ -126,11 +126,30 @@ function summarizePermissions(
   return parts.join('\n');
 }
 
-function buildUserMessage(input: HookInput, context: PromptContext): string {
+/** Normalize macOS /private/tmp symlink for comparison. */
+function normalizePath(p: string): string {
+  if (p.startsWith('/private/tmp')) return p.slice('/private'.length);
+  return p;
+}
+
+function buildUserMessage(input: HookInput, context: PromptContext, projectDir?: string): string {
   const parts: string[] = [];
 
   parts.push(`Tool: ${input.tool_name}`);
-  parts.push(`Working Directory: ${input.cwd}`);
+
+  const cwd = input.cwd;
+  const resolvedDir = projectDir ?? cwd;
+  const normalizedCwd = normalizePath(cwd);
+  const normalizedProject = normalizePath(resolvedDir);
+
+  if (normalizedCwd !== normalizedProject) {
+    parts.push(`Project Directory: ${resolvedDir}`);
+    parts.push(`Subagent Working Directory: ${cwd}`);
+    parts.push('Note: Both the project directory and the subagent working directory are valid locations. Operations in either directory are expected.');
+  } else {
+    parts.push(`Working Directory: ${cwd}`);
+  }
+
   parts.push(`Input: ${JSON.stringify(input.tool_input, null, 2)}`);
 
   // Add user's existing permission rules for context
@@ -174,12 +193,13 @@ function buildUserMessage(input: HookInput, context: PromptContext): string {
 export function buildPrompt(
   input: HookInput,
   context: PromptContext,
-  mode: GatekeeperMode = 'allow-or-ask'
+  mode: GatekeeperMode = 'allow-or-ask',
+  projectDir?: string
 ): { systemPrompt: string; userMessage: string } {
   const systemPrompt = mode === 'hands-free' ? SYSTEM_PROMPT_HANDS_FREE : SYSTEM_PROMPT_SUPERVISED;
   return {
     systemPrompt,
-    userMessage: buildUserMessage(input, context),
+    userMessage: buildUserMessage(input, context, projectDir),
   };
 }
 

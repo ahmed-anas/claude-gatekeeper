@@ -115,6 +115,27 @@ describe('buildUserMessage', () => {
     expect(msg).not.toContain('permission rules');
     expect(msg).not.toContain('Gatekeeper Policy');
   });
+
+  it('shows single working directory when cwd matches projectDir', () => {
+    const msg = buildUserMessage(baseInput, emptyContext, '/home/user/project');
+    expect(msg).toContain('Working Directory: /home/user/project');
+    expect(msg).not.toContain('Subagent');
+  });
+
+  it('shows both directories when subagent cwd differs from projectDir', () => {
+    const subagentInput = { ...baseInput, cwd: '/private/tmp/nx-tools-sam' };
+    const msg = buildUserMessage(subagentInput, emptyContext, '/Users/dev/project');
+    expect(msg).toContain('Project Directory: /Users/dev/project');
+    expect(msg).toContain('Subagent Working Directory: /private/tmp/nx-tools-sam');
+    expect(msg).toContain('Both the project directory and the subagent working directory are valid');
+  });
+
+  it('normalizes /private/tmp to /tmp when comparing directories', () => {
+    const subagentInput = { ...baseInput, cwd: '/private/tmp/myproject' };
+    const msg = buildUserMessage(subagentInput, emptyContext, '/tmp/myproject');
+    expect(msg).toContain('Working Directory: /private/tmp/myproject');
+    expect(msg).not.toContain('Subagent');
+  });
 });
 
 describe('buildPrompt', () => {
@@ -122,5 +143,12 @@ describe('buildPrompt', () => {
     const { systemPrompt, userMessage } = buildPrompt(baseInput, emptyContext);
     expect(systemPrompt).toBe(SYSTEM_PROMPT_SUPERVISED);
     expect(userMessage).toContain('Tool: Bash');
+  });
+
+  it('passes projectDir to user message', () => {
+    const subagentInput = { ...baseInput, cwd: '/tmp/subagent-dir' };
+    const { userMessage } = buildPrompt(subagentInput, emptyContext, 'allow-or-ask', '/Users/dev/project');
+    expect(userMessage).toContain('Project Directory: /Users/dev/project');
+    expect(userMessage).toContain('Subagent Working Directory: /tmp/subagent-dir');
   });
 });

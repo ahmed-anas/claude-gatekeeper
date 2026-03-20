@@ -13,7 +13,7 @@ import { execSync } from 'child_process';
 import { readJson, writeJson } from './fs-utils';
 import { ask, closePrompt } from './cli-prompt';
 
-const HOOK_TIMEOUT = 15000;
+const HOOK_TIMEOUT = 60000;
 
 function getBinPath(): string {
   return resolve(join(__dirname, '..', 'bin', 'gatekeeper'));

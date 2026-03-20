@@ -16,6 +16,7 @@ jest.mock('../../src/evaluator', () => ({ evaluate: jest.fn() }));
 jest.mock('../../src/rules', () => ({ checkRules: jest.fn() }));
 jest.mock('../../src/logger', () => ({
   logDecision: jest.fn(),
+  logDebug: jest.fn(),
   logError: jest.fn(),
   logWarning: jest.fn(),
 }));
@@ -275,7 +276,7 @@ describe('main()', () => {
     expect(mockLoadContext).toHaveBeenCalledWith('/project', defaultConfig);
 
     // Verify prompt was built with the loaded context
-    expect(mockBuildPrompt).toHaveBeenCalledWith(validInput, emptyContext, 'allow-or-ask');
+    expect(mockBuildPrompt).toHaveBeenCalledWith(validInput, emptyContext, 'allow-or-ask', '/project');
 
     // Verify evaluator was called with the built prompt
     expect(mockEvaluate).toHaveBeenCalledWith('sys', 'usr', defaultConfig);

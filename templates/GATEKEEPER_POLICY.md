@@ -19,6 +19,8 @@ Edit this file to customize which tool invocations are auto-approved or escalate
 ### Write / Edit
 - Writing/editing files within the project directory
 - Writing/editing test files, source files, documentation
+- Writing/editing files in temporary directories (/tmp, /private/tmp) — these are scratch/workspace areas
+- Writing/editing files under /tmp or /private/tmp (temporary workspace — these are equivalent on macOS)
 
 ### WebFetch
 - Fetching from well-known dev resources: npm, GitHub, Stack Overflow, MDN, docs sites
@@ -39,7 +41,7 @@ Edit this file to customize which tool invocations are auto-approved or escalate
 - Killing system processes unrelated to the project
 
 ### Write / Edit
-- Writing/editing files outside the project directory
+- Writing/editing files outside the project directory (except /tmp and /private/tmp)
 - Overwriting critical config files (CI/CD configs, deployment files)
 - Modifying credential/secret files (.env, private keys, tokens)
 

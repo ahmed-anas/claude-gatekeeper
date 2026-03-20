@@ -20,7 +20,7 @@ import { loadContext } from './context';
 import { buildPrompt } from './prompt';
 import { evaluate } from './evaluator';
 import { checkRules } from './rules';
-import { logDecision, logError } from './logger';
+import { logDecision, logDebug, logError } from './logger';
 import { checkPermissions } from './permissions';
 import { resolveProjectDir } from './project-dir';
 
@@ -103,6 +103,8 @@ export async function main(): Promise<void> {
     return;
   }
 
+  logDebug(`input: ${JSON.stringify({ hook_event_name: input.hook_event_name, tool_name: input.tool_name, cwd: input.cwd, transcript_path: input.transcript_path, tool_input: input.tool_input })}`, config);
+
   const hookType = input.hook_event_name;
   const mode = config.mode;
 
@@ -167,8 +169,9 @@ export async function main(): Promise<void> {
 
     // AI evaluation
     const projectDir = resolveProjectDir(input);
+    logDebug(`resolved projectDir=${projectDir} (cwd=${input.cwd})`, config);
     const context = loadContext(projectDir, config);
-    const { systemPrompt, userMessage } = buildPrompt(input, context, mode);
+    const { systemPrompt, userMessage } = buildPrompt(input, context, mode, projectDir);
     const result = await evaluate(systemPrompt, userMessage, config);
 
     logDecision(input, result, config);
