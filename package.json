@@ -34,6 +34,7 @@
     "test:integration": "jest --testPathPattern=integration",
     "test:e2e": "jest tests/e2e/live.test.ts --no-coverage --testPathIgnorePatterns='[]'",
     "test:qa": "jest tests/qa/ --no-coverage --testPathIgnorePatterns='[]' --verbose",
+    "test:prediction-quality": "jest tests/prediction-quality/ --no-coverage --testPathIgnorePatterns='[]' --verbose --runInBand",
     "test:coverage": "jest --coverage",
     "lint": "tsc --noEmit",
     "clean": "rm -rf dist",
