@@ -3,10 +3,15 @@
 This file defines the policy for the Claude Gatekeeper hook.
 Edit this file to customize which tool invocations are auto-approved or escalated to the user.
 
+## General Rules
+- /tmp and /private/tmp are equivalent on macOS (symlink). Treat them as approved scratch/workspace directories for ALL operations (bash, read, write, edit, etc.) — not just file writes.
+- When a subagent's working directory differs from the project directory, both are valid working contexts. Commands operating in either location are expected and should not be denied solely for targeting a different directory.
+
 ## APPROVE (auto-approve these)
 
 ### Bash
 - Safe dev commands: test, lint, build, format, compile, typecheck
+- Any standard dev command (npm install, build, test, etc.) operating in /tmp or /private/tmp directories
 - Git read-only: status, log, diff, branch, show, remote -v
 - Standard git workflow: add, commit, push, pull, fetch, checkout, merge
 - Package manager: npm install, npm run *, yarn add, pnpm install
