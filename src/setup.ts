@@ -12,6 +12,7 @@ import { homedir } from 'os';
 import { execSync } from 'child_process';
 import { readJson, writeJson } from './fs-utils';
 import { ask, closePrompt } from './cli-prompt';
+import { printModeExplanation } from './mode';
 
 const HOOK_TIMEOUT = 90000;
 
@@ -130,7 +131,8 @@ export async function setup(): Promise<void> {
   }
 
   const configPath = join(homedir(), '.claude', 'claude-gatekeeper', 'config.json');
-  if (existsSync(configPath)) {
+  const isFirstSetup = !existsSync(configPath);
+  if (!isFirstSetup) {
     console.log(`Config file exists: ${configPath}`);
   } else {
     const wantConfig = await ask('Create config file with defaults?');
@@ -162,6 +164,12 @@ export async function setup(): Promise<void> {
     }
   }
   console.log('       Tip: add a per-project override with <project>/GATEKEEPER_POLICY.md');
+
+  if (isFirstSetup) {
+    console.log('\n  Default mode: allow-or-ask\n');
+    printModeExplanation('allow-or-ask');
+    console.log('\n  Switch modes anytime with: claude-gatekeeper mode <mode-name>');
+  }
 
   closePrompt();
   console.log('\n---');

@@ -17,6 +17,24 @@ const MODE_DESCRIPTIONS: Record<string, string> = {
   'hands-free': 'Approve safe commands, deny dangerous ones (no user interaction)',
 };
 
+/** Print a detailed explanation of how the given mode works. */
+export function printModeExplanation(mode: string): void {
+  if (mode === 'hands-free') {
+    console.log('  How hands-free mode works:');
+    console.log('  - Safe commands are auto-approved by AI');
+    console.log('  - Dangerous or uncertain commands are denied with a reason');
+    console.log('  - Claude receives the denial reason and can adjust its approach');
+    console.log('  - The permission prompt is never shown — everything is handled in the background');
+  } else {
+    console.log('  How allow-or-ask mode works:');
+    console.log('  - Safe commands are auto-approved by AI');
+    console.log('  - For uncertain commands, the permission prompt appears while AI evaluates in the background');
+    console.log('  - If you approve/deny before AI responds, your choice takes effect immediately');
+    console.log('  - If you wait and AI finishes first, its decision (approve or show prompt) applies');
+    console.log('  - You always have the final say — AI never auto-denies in this mode');
+  }
+}
+
 export function setMode(requestedMode?: string): void {
   const config = loadConfig();
   const currentMode = config.mode;
@@ -57,18 +75,7 @@ export function setMode(requestedMode?: string): void {
   existing.mode = requestedMode;
   writeJson(configPath, existing);
 
-  console.log(`\nMode changed: ${currentMode} -> ${requestedMode}`);
-
-  if (requestedMode === 'hands-free') {
-    console.log('\n  In hands-free mode:');
-    console.log('  - Safe commands are auto-approved');
-    console.log('  - Dangerous commands are denied with a reason');
-    console.log('  - Claude receives the denial reason and can adjust');
-    console.log('  - No user interaction required');
-  } else {
-    console.log('\n  In allow-or-ask mode:');
-    console.log('  - Safe commands are auto-approved');
-    console.log('  - Uncertain commands are escalated to the user');
-  }
+  console.log(`\nMode changed: ${currentMode} -> ${requestedMode}\n`);
+  printModeExplanation(requestedMode);
   console.log('');
 }
