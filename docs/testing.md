@@ -54,10 +54,10 @@ tests/
 - Path resolution (~/ to home directory)
 
 ### `context.test.ts`
-- Loading all context files (settings, CLAUDE.md, APPROVAL_POLICY.md)
+- Loading all context files (settings, CLAUDE.md, GATEKEEPER_POLICY.md)
 - Graceful handling of missing files (returns null)
 - Content truncation to maxContextLength
-- Fallback from `APPROVAL_POLICY.md` to `.claude/APPROVAL_POLICY.md`
+- Fallback from `GATEKEEPER_POLICY.md` to `.claude/GATEKEEPER_POLICY.md`
 
 ### `evaluator.test.ts`
 - JSON response parsing (valid, embedded in text, malformed)

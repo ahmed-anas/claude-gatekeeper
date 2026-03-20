@@ -1,6 +1,6 @@
-# Approval Policy
+# Gatekeeper Policy
 
-This file defines the approval policy for the Claude Gatekeeper hook.
+This file defines the policy for the Claude Gatekeeper hook.
 Edit this file to customize which tool invocations are auto-approved or escalated to the user.
 
 ## APPROVE (auto-approve these)

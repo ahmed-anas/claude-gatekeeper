@@ -14,7 +14,7 @@ Permission Request → Static Rules → AI Evaluation → Decision
 
 1. **Claude Code triggers a permission prompt** for a tool it wants to use (Bash, Write, Edit, etc.)
 2. **Static rules check first** — obviously dangerous commands (rm -rf, sudo, curl|sh) are immediately escalated; known-safe patterns are immediately approved
-3. **AI evaluation** — for everything else, Claude Haiku analyzes the request with full context (your settings, CLAUDE.md, project approval policy)
+3. **AI evaluation** — for everything else, Claude Haiku analyzes the request with full context (your settings, CLAUDE.md, project gatekeeper policy)
 4. **Decision** — if AI confidence meets or exceeds the threshold (default: `high`), it auto-approves. Otherwise, the normal permission prompt appears
 
 **Key safety guarantee:** The tool **never auto-denies**. It can only approve or pass through to you. Any error (API failure, timeout, parse error) results in the normal prompt appearing.
@@ -39,7 +39,7 @@ claude-gatekeeper setup
 This will:
 1. Register the PermissionRequest hook in `~/.claude/settings.json`
 2. Optionally create a config file at `~/.claude/claude-gatekeeper/config.json`
-3. Optionally install a global `APPROVAL_POLICY.md` template
+3. Optionally install a global `GATEKEEPER_POLICY.md` template
 
 To check your installation:
 
@@ -53,7 +53,7 @@ claude-gatekeeper status
 claude-gatekeeper uninstall
 ```
 
-This removes the hook from `~/.claude/settings.json` and optionally deletes `~/.claude/claude-gatekeeper/` (config, logs, approval policy). Per-project `APPROVAL_POLICY.md` files are **not** removed — delete those manually if needed.
+This removes the hook from `~/.claude/settings.json` and optionally deletes `~/.claude/claude-gatekeeper/` (config, logs, gatekeeper policy). Per-project `GATEKEEPER_POLICY.md` files are **not** removed — delete those manually if needed.
 
 To also remove the CLI:
 
@@ -167,9 +167,9 @@ Every decision is logged to the audit file:
 [2026-03-13T18:30:05.000Z] decision=escalate confidence=absolute model=static latency=0ms tool=Bash input="sudo rm -rf /" reasoning="Matched always-escalate pattern"
 ```
 
-## Project Approval Policy
+## Project Gatekeeper Policy
 
-Create an `APPROVAL_POLICY.md` in your project root (or `.claude/APPROVAL_POLICY.md`) to customize the AI's decisions for your specific project. See `templates/APPROVAL_POLICY.md` for the default template.
+Create a `GATEKEEPER_POLICY.md` in your project root (or `.claude/GATEKEEPER_POLICY.md`) to customize the AI's decisions for your specific project. See `templates/GATEKEEPER_POLICY.md` for the default template.
 
 ## Testing
 
@@ -187,7 +187,7 @@ src/
 ├── index.ts      # Entry point: stdin → orchestrate → stdout
 ├── types.ts      # TypeScript interfaces
 ├── config.ts     # Configuration loading + defaults
-├── context.ts    # Load settings, CLAUDE.md, APPROVAL_POLICY.md
+├── context.ts    # Load settings, CLAUDE.md, GATEKEEPER_POLICY.md
 ├── evaluator.ts  # AI evaluation (dual backend)
 ├── prompt.ts     # System prompt + user message construction
 ├── logger.ts     # Audit logging
@@ -203,7 +203,7 @@ When a request passes static rules without a match, it goes to Claude Haiku for 
    - The tool name and full input (e.g. `Bash` + `{"command": "npm test"}`)
    - The working directory
    - Your existing permission rules (allow/ask/deny lists from Claude settings — gives the AI context about your trust boundaries)
-   - Your project's `APPROVAL_POLICY.md` (if present)
+   - Your project's `GATEKEEPER_POLICY.md` (if present)
    - Excerpts from your `CLAUDE.md` files (project context)
 
 The AI responds with a JSON object: `{"decision": "approve"|"escalate", "confidence": "<level>", "reasoning": "..."}`. If confidence meets the configured threshold (default: `high`), the decision is applied. Otherwise it escalates.

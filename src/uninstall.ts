@@ -3,7 +3,7 @@
  *
  * Removes the PermissionRequest hook from ~/.claude/settings.json
  * and optionally deletes ~/.claude/claude-gatekeeper/ (config, log,
- * approval policy).
+ * gatekeeper policy).
  */
 
 import { existsSync, rmSync } from 'fs';
@@ -64,7 +64,7 @@ export async function uninstall(): Promise<void> {
 
   const configDir = join(homedir(), '.claude', 'claude-gatekeeper');
   if (existsSync(configDir)) {
-    const wantDelete = await ask('\nDelete ~/.claude/claude-gatekeeper/ (config, logs, approval policy)?');
+    const wantDelete = await ask('\nDelete ~/.claude/claude-gatekeeper/ (config, logs, gatekeeper policy)?');
     if (wantDelete) {
       rmSync(configDir, { recursive: true, force: true });
       console.log('  [ok] Deleted ~/.claude/claude-gatekeeper/');
@@ -73,7 +73,7 @@ export async function uninstall(): Promise<void> {
     }
   }
 
-  console.log('\n  NOTE: Any per-project APPROVAL_POLICY.md files were NOT removed.');
+  console.log('\n  NOTE: Any per-project GATEKEEPER_POLICY.md files were NOT removed.');
   console.log('        Remove them manually if no longer needed.\n');
 
   closePrompt();

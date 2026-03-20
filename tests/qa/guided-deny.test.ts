@@ -12,7 +12,7 @@
  *   - Gatekeeper hooks registered (run `claude-gatekeeper setup`)
  *
  * Scenario:
- *   - Custom APPROVAL_POLICY.md: "Files must be written to a 'output' subdirectory"
+ *   - Custom GATEKEEPER_POLICY.md: "Files must be written to a 'output' subdirectory"
  *   - Ask Claude to write a file called "result.txt" with some content
  *   - Expected: Claude tries writing to cwd → denied → retries in output/ → approved
  *   - Verify: output/result.txt exists with content
@@ -116,9 +116,9 @@ describe('QA: Guided deny behavior', () => {
     tmpDir = join(tmpdir(), `gatekeeper-qa-${Date.now()}`);
     mkdirSync(join(tmpDir, 'output'), { recursive: true });
 
-    // Write a custom approval policy with a specific testable rule
-    writeFileSync(join(tmpDir, 'APPROVAL_POLICY.md'), [
-      '# Approval Policy',
+    // Write a custom gatekeeper policy with a specific testable rule
+    writeFileSync(join(tmpDir, 'GATEKEEPER_POLICY.md'), [
+      '# Gatekeeper Policy',
       '',
       '## APPROVE',
       '- Writing files ONLY inside the "output" subdirectory (e.g., output/result.txt)',

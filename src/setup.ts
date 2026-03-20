@@ -3,7 +3,7 @@
  *
  * Registers the PermissionRequest hook in ~/.claude/settings.json,
  * optionally creates a config file, and optionally installs a
- * global APPROVAL_POLICY.md template to ~/.claude/.
+ * global GATEKEEPER_POLICY.md template to ~/.claude/.
  */
 
 import { existsSync, mkdirSync, copyFileSync } from 'fs';
@@ -143,25 +143,25 @@ export async function setup(): Promise<void> {
   }
   console.log('');
 
-  const policyDest = join(homedir(), '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md');
+  const policyDest = join(homedir(), '.claude', 'claude-gatekeeper', 'GATEKEEPER_POLICY.md');
   if (existsSync(policyDest)) {
-    console.log('Approval policy exists: ~/.claude/claude-gatekeeper/APPROVAL_POLICY.md');
+    console.log('Gatekeeper policy exists: ~/.claude/claude-gatekeeper/GATEKEEPER_POLICY.md');
   } else {
-    const wantPolicy = await ask('Install default approval policy?');
+    const wantPolicy = await ask('Install default gatekeeper policy?');
     if (wantPolicy) {
-      const templatePath = join(getTemplatesDir(), 'APPROVAL_POLICY.md');
+      const templatePath = join(getTemplatesDir(), 'GATEKEEPER_POLICY.md');
       if (existsSync(templatePath)) {
         mkdirSync(dirname(policyDest), { recursive: true });
         copyFileSync(templatePath, policyDest);
-        console.log('  [ok] Installed ~/.claude/claude-gatekeeper/APPROVAL_POLICY.md');
+        console.log('  [ok] Installed ~/.claude/claude-gatekeeper/GATEKEEPER_POLICY.md');
       } else {
         console.log('  [warn] Template not found — skipping');
       }
     } else {
-      console.log('  [skip] No approval policy installed');
+      console.log('  [skip] No gatekeeper policy installed');
     }
   }
-  console.log('       Tip: add a per-project override with <project>/APPROVAL_POLICY.md');
+  console.log('       Tip: add a per-project override with <project>/GATEKEEPER_POLICY.md');
 
   closePrompt();
   console.log('\n---');

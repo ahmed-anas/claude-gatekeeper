@@ -79,13 +79,13 @@ describe('buildUserMessage', () => {
     expect(msg).toContain('Bash(npm *)');
   });
 
-  it('includes approval policy when available', () => {
+  it('includes gatekeeper policy when available', () => {
     const context: PromptContext = {
       ...emptyContext,
       globalApprovalPolicy: '## APPROVE\n- npm commands',
     };
     const msg = buildUserMessage(baseInput, context);
-    expect(msg).toContain('Global Approval Policy');
+    expect(msg).toContain('Global Gatekeeper Policy');
     expect(msg).toContain('npm commands');
   });
 
@@ -113,7 +113,7 @@ describe('buildUserMessage', () => {
     const msg = buildUserMessage(baseInput, emptyContext);
     expect(msg).toContain('Tool: Bash');
     expect(msg).not.toContain('permission rules');
-    expect(msg).not.toContain('Approval Policy');
+    expect(msg).not.toContain('Gatekeeper Policy');
   });
 });
 

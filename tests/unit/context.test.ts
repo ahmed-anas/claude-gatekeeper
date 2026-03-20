@@ -64,7 +64,7 @@ describe('loadContext', () => {
       '/project/.claude/settings.json': '{"permissions": {"deny": []}}',
       '/home/testuser/.claude/CLAUDE.md': '# Global instructions',
       '/project/CLAUDE.md': '# Project instructions',
-      '/project/APPROVAL_POLICY.md': '# Policy',
+      '/project/GATEKEEPER_POLICY.md': '# Policy',
     };
 
     mockReadFileSync.mockImplementation((path: any) => {
@@ -153,8 +153,8 @@ describe('loadContext', () => {
 
   it('loads both global and project approval policies', () => {
     const fileMap: Record<string, string> = {
-      '/home/testuser/.claude/claude-gatekeeper/APPROVAL_POLICY.md': '# Global policy',
-      '/project/APPROVAL_POLICY.md': '# Project policy',
+      '/home/testuser/.claude/claude-gatekeeper/GATEKEEPER_POLICY.md': '# Global policy',
+      '/project/GATEKEEPER_POLICY.md': '# Project policy',
     };
 
     mockReadFileSync.mockImplementation((path: any) => {
@@ -184,7 +184,7 @@ describe('loadContext', () => {
 
   it('loads global policy when no project policy exists', () => {
     mockReadFileSync.mockImplementation((path: any) => {
-      if (String(path) === '/home/testuser/.claude/claude-gatekeeper/APPROVAL_POLICY.md') return '# Global only';
+      if (String(path) === '/home/testuser/.claude/claude-gatekeeper/GATEKEEPER_POLICY.md') return '# Global only';
       throw new Error('ENOENT');
     });
 
@@ -207,9 +207,9 @@ describe('loadContext', () => {
     expect(context.projectApprovalPolicy).toBeNull();
   });
 
-  it('falls back to .claude/APPROVAL_POLICY.md', () => {
+  it('falls back to .claude/GATEKEEPER_POLICY.md', () => {
     mockReadFileSync.mockImplementation((path: any) => {
-      if (String(path) === '/project/.claude/APPROVAL_POLICY.md') return '# Fallback policy';
+      if (String(path) === '/project/.claude/GATEKEEPER_POLICY.md') return '# Fallback policy';
       throw new Error('ENOENT');
     });
 

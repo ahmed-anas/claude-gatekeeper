@@ -88,12 +88,12 @@ After:
 }
 ```
 
-## Step 3: (Optional) Create Approval Policy
+## Step 3: (Optional) Create Gatekeeper Policy
 
 Copy the template to your project:
 
 ```bash
-cp /path/to/claude-gatekeeper/templates/APPROVAL_POLICY.md ./APPROVAL_POLICY.md
+cp /path/to/claude-gatekeeper/templates/GATEKEEPER_POLICY.md ./GATEKEEPER_POLICY.md
 ```
 
 Edit it to match your project's specific needs.
@@ -148,4 +148,4 @@ You should see decision entries with timestamps, confidence scores, and reasonin
 ### Auto-approvals are too aggressive
 - Raise `confidenceThreshold` to `"absolute"`
 - Add patterns to `alwaysEscalatePatterns` in config
-- Make your `APPROVAL_POLICY.md` more restrictive
+- Make your `GATEKEEPER_POLICY.md` more restrictive

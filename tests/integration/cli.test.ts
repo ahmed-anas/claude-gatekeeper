@@ -144,11 +144,11 @@ describe('CLI: setup', () => {
     expect(existsSync(configPath)).toBe(false);
   });
 
-  it('installs approval policy when user says yes', async () => {
+  it('installs gatekeeper policy when user says yes', async () => {
     // "no" to config, "yes" to policy
     await runCli(['setup'], { HOME: tmpHome }, 'n\ny\n');
 
-    const policyPath = join(tmpHome, '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md');
+    const policyPath = join(tmpHome, '.claude', 'claude-gatekeeper', 'GATEKEEPER_POLICY.md');
     expect(existsSync(policyPath)).toBe(true);
 
     const content = readFileSync(policyPath, 'utf-8');
@@ -234,7 +234,7 @@ describe('CLI: uninstall', () => {
 
   it('shows per-project warning', async () => {
     const result = await runCli(['uninstall'], { HOME: tmpHome }, 'n\n');
-    expect(result.stdout).toContain('per-project APPROVAL_POLICY.md files were NOT removed');
+    expect(result.stdout).toContain('per-project GATEKEEPER_POLICY.md files were NOT removed');
   });
 });
 
@@ -279,7 +279,7 @@ describe('CLI: status', () => {
     expect(result.stdout).not.toContain('using defaults');
   });
 
-  it('shows approval policy status', async () => {
+  it('shows gatekeeper policy status', async () => {
     const result = await runCli(['status'], { HOME: tmpHome });
     expect(result.stdout).toContain('global=no');
   });
@@ -309,7 +309,7 @@ describe('CLI: setup → uninstall round-trip', () => {
 
     const configDir = join(tmpHome, '.claude', 'claude-gatekeeper');
     expect(existsSync(join(configDir, 'config.json'))).toBe(true);
-    expect(existsSync(join(configDir, 'APPROVAL_POLICY.md'))).toBe(true);
+    expect(existsSync(join(configDir, 'GATEKEEPER_POLICY.md'))).toBe(true);
 
     // Uninstall with cleanup
     await runCli(['uninstall'], { HOME: tmpHome }, 'y\n');

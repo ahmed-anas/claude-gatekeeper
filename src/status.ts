@@ -59,9 +59,9 @@ export function status(): void {
 
   const home = homedir();
   const cwd = process.cwd();
-  const globalPolicy = existsSync(join(home, '.claude', 'claude-gatekeeper', 'APPROVAL_POLICY.md'));
-  const projectPolicy = existsSync(join(cwd, 'APPROVAL_POLICY.md'))
-    || existsSync(join(cwd, '.claude', 'APPROVAL_POLICY.md'));
+  const globalPolicy = existsSync(join(home, '.claude', 'claude-gatekeeper', 'GATEKEEPER_POLICY.md'));
+  const projectPolicy = existsSync(join(cwd, 'GATEKEEPER_POLICY.md'))
+    || existsSync(join(cwd, '.claude', 'GATEKEEPER_POLICY.md'));
   console.log(`  Policy:   global=${globalPolicy ? 'yes' : 'no'}, project=${projectPolicy ? 'yes' : 'no'}`);
 
   console.log(`  Log file: ${config.logFile}`);

@@ -101,14 +101,14 @@ Example:
 }
 ```
 
-## Approval Policy Files
+## Gatekeeper Policy Files
 
-In addition to the config file, you can create per-project approval policies:
+In addition to the config file, you can create per-project gatekeeper policies:
 
-- `<project>/APPROVAL_POLICY.md` — Project-level policy
-- `<project>/.claude/APPROVAL_POLICY.md` — Alternative location
+- `<project>/GATEKEEPER_POLICY.md` — Project-level policy
+- `<project>/.claude/GATEKEEPER_POLICY.md` — Alternative location
 
-These are human-readable markdown files that the AI uses as additional context when making decisions. See `templates/APPROVAL_POLICY.md` for the default template.
+These are human-readable markdown files that the AI uses as additional context when making decisions. See `templates/GATEKEEPER_POLICY.md` for the default template.
 
 ## Environment Variables
 

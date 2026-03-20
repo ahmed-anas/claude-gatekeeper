@@ -9,7 +9,7 @@ Claude Gatekeeper is a Claude Code **PermissionRequest hook**. When Claude Code 
 1. **Never auto-deny** — The hook can only approve or escalate (pass to user). It never blocks operations.
 2. **Fail-safe** — Any error at any point in the pipeline results in escalation. The user always has the final say.
 3. **Layered evaluation** — Static rules run first (milliseconds), AI runs second (1-5 seconds). This keeps common cases fast.
-4. **Context-aware** — The AI receives the user's existing permission rules, CLAUDE.md, and project approval policy to make informed decisions.
+4. **Context-aware** — The AI receives the user's existing permission rules, CLAUDE.md, and project gatekeeper policy to make informed decisions.
 5. **Transparent** — Every decision is logged to an audit file with timestamps, reasoning, and confidence scores.
 
 ## Data Flow
@@ -52,7 +52,7 @@ Claude Gatekeeper is a Claude Code **PermissionRequest hook**. When Claude Code 
                     │  - User settings          │
                     │  - Project settings       │
                     │  - CLAUDE.md files         │
-                    │  - APPROVAL_POLICY.md     │
+                    │  - GATEKEEPER_POLICY.md   │
                     └────────────┬─────────────┘
                                  │
                     ┌────────────▼─────────────┐
@@ -94,7 +94,7 @@ Reads files that provide context for the AI prompt:
 - `<cwd>/.claude/settings.json` — project permission rules
 - `~/.claude/CLAUDE.md` — global instructions
 - `<cwd>/CLAUDE.md` — project instructions
-- `<cwd>/APPROVAL_POLICY.md` or `<cwd>/.claude/APPROVAL_POLICY.md` — project-specific approval rules
+- `<cwd>/GATEKEEPER_POLICY.md` or `<cwd>/.claude/GATEKEEPER_POLICY.md` — project-specific gatekeeper rules
 
 All reads are best-effort (missing files return null). CLAUDE.md content is truncated to `maxContextLength`.
 
@@ -104,7 +104,7 @@ Checks the command/file/URL against `alwaysEscalatePatterns` and `alwaysApproveP
 Uses a custom wildcard matcher (not minimatch) because commands contain `/` characters and spaces that minimatch's file-path-oriented `*` doesn't handle correctly.
 
 ### `prompt.ts` — AI Prompt Construction
-Builds the system prompt (security evaluator instructions) and user message (tool details + context). The system prompt defines APPROVE and ESCALATE criteria. The user message includes the tool name, input, working directory, existing permission rules, approval policy, and CLAUDE.md excerpts.
+Builds the system prompt (security evaluator instructions) and user message (tool details + context). The system prompt defines APPROVE and ESCALATE criteria. The user message includes the tool name, input, working directory, existing permission rules, gatekeeper policy, and CLAUDE.md excerpts.
 
 ### `evaluator.ts` — AI Evaluation
 Two backends:

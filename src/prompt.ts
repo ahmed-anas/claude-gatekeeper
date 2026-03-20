@@ -9,7 +9,7 @@
  * - Working directory (location context)
  * - User's existing permission rules (what's already allowed — helps the
  *   AI understand the user's trust boundaries)
- * - APPROVAL_POLICY.md (project-specific rules if present)
+ * - GATEKEEPER_POLICY.md (project-specific rules if present)
  * - CLAUDE.md excerpts (project context)
  *
  * The prompt is designed to make the AI conservative: "when in doubt,
@@ -146,12 +146,12 @@ function buildUserMessage(input: HookInput, context: PromptContext): string {
   // Add approval policies (both global and project-level)
   if (context.globalApprovalPolicy) {
     parts.push('');
-    parts.push('Global Approval Policy:');
+    parts.push('Global Gatekeeper Policy:');
     parts.push(context.globalApprovalPolicy);
   }
   if (context.projectApprovalPolicy) {
     parts.push('');
-    parts.push('Project Approval Policy (extends global — takes precedence on conflicts):');
+    parts.push('Project Gatekeeper Policy (extends global — takes precedence on conflicts):');
     parts.push(context.projectApprovalPolicy);
   }
 

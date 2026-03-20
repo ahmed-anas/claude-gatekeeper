@@ -16,7 +16,7 @@ nvm exec npm test
 - `src/index.ts` — Entry point: reads stdin, orchestrates the pipeline, writes approval JSON or exits silently to escalate
 - `src/types.ts` — All TypeScript interfaces
 - `src/config.ts` — Loads config from `~/.claude/claude-gatekeeper/config.json`, merges with defaults
-- `src/context.ts` — Loads Claude settings, CLAUDE.md, and APPROVAL_POLICY.md for AI context
+- `src/context.ts` — Loads Claude settings, CLAUDE.md, and GATEKEEPER_POLICY.md for AI context
 - `src/evaluator.ts` — Dual-backend AI evaluation: `claude -p` (default) or direct Anthropic API
 - `src/prompt.ts` — Constructs system prompt and user message for AI evaluation
 - `src/logger.ts` — File-based decision audit logging
