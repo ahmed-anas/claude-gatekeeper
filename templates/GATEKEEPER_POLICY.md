@@ -20,10 +20,13 @@ Edit this file to customize which tool invocations are auto-approved or escalate
 - Writing/editing files within the project directory
 - Writing/editing test files, source files, documentation
 - Writing/editing files in temporary directories (/tmp, /private/tmp) — these are scratch/workspace areas
-- Writing/editing files under /tmp or /private/tmp (temporary workspace — these are equivalent on macOS)
+- Writing/editing files in ~/.claude/claude-gatekeeper/ — the gatekeeper's own config/policy directory
 
 ### WebFetch
 - Fetching from well-known dev resources: npm, GitHub, Stack Overflow, MDN, docs sites
+
+### Agent
+- Always approve Agent (subagent) tool use — each tool call the subagent makes is individually evaluated by the gatekeeper, so there is no need to gate the spawning itself
 
 ## ESCALATE (always ask the user)
 
