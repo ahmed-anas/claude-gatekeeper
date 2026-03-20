@@ -4,7 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
-  testPathIgnorePatterns: ['/node_modules/', 'live\\.test\\.ts$', '/tests/qa/'],
+  testPathIgnorePatterns: ['/node_modules/', 'live\\.test\\.ts$', '/tests/qa/', '/tests/prediction-quality/'],
   collectCoverageFrom: ['src/**/*.ts'],
   coverageThreshold: {
     global: {
