@@ -194,12 +194,29 @@ describe('E2E: Claude Gatekeeper', () => {
 
   describe('AI evaluation pipeline', () => {
     it('approves a safe Bash command when AI returns high confidence', async () => {
+      // Debug: verify fake claude is on PATH and executable
+      const whichResult = require('child_process').execSync(
+        `ls -la ${join(fakeBinDir, 'claude')} && head -1 ${join(fakeBinDir, 'claude')}`,
+        { encoding: 'utf-8' }
+      );
+      console.error('DEBUG fake-claude check:', whichResult.trim());
+
       const result = await runWithAI(
         payload('Bash', { command: 'npm test' }),
         'approve_high'
       );
       if (result.stdout === '') {
-        console.error('DEBUG: hook produced empty stdout. stderr:', result.stderr, 'exitCode:', result.exitCode);
+        // Run the hook again with debug config to see what happened
+        const debugResult = await runWithAI(
+          payload('Bash', { command: 'npm test' }),
+          'approve_high',
+          { logLevel: 'debug', logFile: '/tmp/gatekeeper-ci-debug.log' }
+        );
+        try {
+          const log = require('fs').readFileSync('/tmp/gatekeeper-ci-debug.log', 'utf-8');
+          console.error('DEBUG log:', log);
+        } catch { /* no log */ }
+        console.error('DEBUG: empty stdout. stderr:', result.stderr, 'exitCode:', result.exitCode);
       }
       expect(result.exitCode).toBe(0);
       expectApproval(result.stdout);
