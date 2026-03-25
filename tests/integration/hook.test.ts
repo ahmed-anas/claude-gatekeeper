@@ -198,6 +198,9 @@ describe('E2E: Claude Gatekeeper', () => {
         payload('Bash', { command: 'npm test' }),
         'approve_high'
       );
+      if (result.stdout === '') {
+        console.error('DEBUG: hook produced empty stdout. stderr:', result.stderr, 'exitCode:', result.exitCode);
+      }
       expect(result.exitCode).toBe(0);
       expectApproval(result.stdout);
     });
