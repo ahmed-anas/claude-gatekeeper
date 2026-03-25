@@ -86,6 +86,13 @@ async function runWithAI(
       writeFileSync(join(configDir, 'config.json'), JSON.stringify(configOverrides));
     }
 
+    // Create empty settings.json so checkPermissions() finds a valid file
+    // with no matching rules, ensuring deterministic behavior across environments.
+    writeFileSync(
+      join(tmpHome, '.claude', 'settings.json'),
+      JSON.stringify({ permissions: { allow: [], deny: [], ask: [] } })
+    );
+
     return await runHook(stdinData, {
       HOME: tmpHome,
       PATH: `${fakeBinDir}:${process.env.PATH || ''}`,

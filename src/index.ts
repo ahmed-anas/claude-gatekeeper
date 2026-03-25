@@ -27,7 +27,7 @@ import { resolveProjectDir } from './project-dir';
 const DENY_PREFIX = 'This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands.';
 
 export function readStdin(): string {
-  return readFileSync('/dev/stdin', 'utf-8').trim();
+  return readFileSync(0, 'utf-8').trim();
 }
 
 export function writePermissionApproval(): void {
