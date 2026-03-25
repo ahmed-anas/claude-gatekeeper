@@ -196,16 +196,8 @@ describe('E2E: Claude Gatekeeper', () => {
     it('approves a safe Bash command when AI returns high confidence', async () => {
       const result = await runWithAI(
         payload('Bash', { command: 'npm test' }),
-        'approve_high',
-        { logLevel: 'debug', logFile: '/tmp/gatekeeper-ci-debug.log' }
+        'approve_high'
       );
-      if (result.stdout === '') {
-        try {
-          const log = require('fs').readFileSync('/tmp/gatekeeper-ci-debug.log', 'utf-8');
-          console.error('DEBUG log:', log);
-        } catch (e: any) { console.error('DEBUG no log file:', e.message); }
-        console.error('DEBUG: empty stdout. stderr:', JSON.stringify(result.stderr), 'exitCode:', result.exitCode);
-      }
       expect(result.exitCode).toBe(0);
       expectApproval(result.stdout);
     });
