@@ -16,7 +16,7 @@
     "url": "git+https://github.com/ahmed-anas/claude-gatekeeper.git"
   },
   "homepage": "https://github.com/ahmed-anas/claude-gatekeeper#readme",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "keywords": [
     "claude",
     "claude-code",
