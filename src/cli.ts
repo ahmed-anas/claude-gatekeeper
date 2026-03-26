@@ -15,6 +15,7 @@ import { setup } from './setup';
 import { status } from './status';
 import { uninstall } from './uninstall';
 import { setMode } from './mode';
+import { setEnabled } from './enable';
 
 const program = new Command();
 
@@ -67,6 +68,30 @@ program
       setMode(modeName);
     } catch (err) {
       console.error(`Mode change failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('enable')
+  .description('Enable the gatekeeper')
+  .action(() => {
+    try {
+      setEnabled(true);
+    } catch (err) {
+      console.error(`Enable failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('disable')
+  .description('Disable the gatekeeper (hooks remain registered but escalate all requests)')
+  .action(() => {
+    try {
+      setEnabled(false);
+    } catch (err) {
+      console.error(`Disable failed: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
   });
