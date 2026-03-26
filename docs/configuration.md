@@ -54,7 +54,7 @@ Minimum confidence level required from the AI to auto-approve. The AI picks from
 | `"absolute"` | No reasonable doubt | Very conservative — only approve when AI is certain |
 
 ### `timeoutMs` (number, default: `30000`)
-Maximum time in milliseconds to wait for AI evaluation. Clamped to [1000, 60000]. If the AI doesn't respond in time, the request is escalated to the user.
+Maximum time in milliseconds to wait for AI evaluation. Clamped to [1000, 60000]. If the AI doesn't respond in time, the request is escalated to the user (allow-or-ask) or denied (hands-free).
 
 ### `maxContextLength` (number, default: `2000`)
 Maximum characters of CLAUDE.md content to include in the AI prompt. Longer values give the AI more context but increase latency and token usage.
@@ -68,7 +68,7 @@ Path to the audit log file. Supports `~` for home directory. The directory is cr
 - `"warn"` — Only log warnings and errors (minimal logging)
 
 ### `alwaysEscalatePatterns` (string[], default: see below)
-Wildcard patterns that bypass AI and always escalate to the user. These are checked **before** any AI call, so they're essentially free.
+Wildcard patterns that bypass AI and always escalate to the user (allow-or-ask) or deny with a reason (hands-free). These are checked **before** any AI call, so they're essentially free.
 
 Patterns use `*` as a wildcard that matches any characters (including `/` and spaces). For Bash commands, each segment of compound commands (split on `|`, `&&`, `||`, `;`) is checked individually.
 

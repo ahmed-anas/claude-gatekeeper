@@ -12,9 +12,10 @@
  *    The SDK is lazy-imported to avoid loading it when not needed.
  *
  * Both backends parse the AI response (JSON with decision/confidence/reasoning),
- * handle timeouts via AbortController/kill, and fall back to escalation on
- * any error. The evaluate() function routes to the correct backend based
- * on config and API key availability.
+ * handle timeouts via AbortController/kill, and fall back to escalation
+ * (allow-or-ask) or denial (hands-free) on any error. The evaluate()
+ * function routes to the correct backend based on config and API key
+ * availability.
  */
 
 import { spawn } from 'child_process';

@@ -6,13 +6,15 @@ Claude Gatekeeper is a Claude Code **PermissionRequest hook**. When Claude Code 
 
 ## Design Principles
 
-1. **Never auto-deny** — The hook can only approve or escalate (pass to user). It never blocks operations.
-2. **Fail-safe** — Any error at any point in the pipeline results in escalation. The user always has the final say.
+1. **Never auto-deny (allow-or-ask)** — In allow-or-ask mode, the hook can only approve or escalate (pass to user). It never blocks operations. In hands-free mode, uncertain/dangerous commands are denied with a reason.
+2. **Fail-safe / Fail-closed** — In allow-or-ask mode, any error results in escalation (fail-safe). In hands-free mode, any error results in denial (fail-closed, no human to ask).
 3. **Layered evaluation** — Static rules run first (milliseconds), AI runs second (1-5 seconds). This keeps common cases fast.
 4. **Context-aware** — The AI receives the user's existing permission rules, CLAUDE.md, and project gatekeeper policy to make informed decisions.
 5. **Transparent** — Every decision is logged to an audit file with timestamps, reasoning, and confidence scores.
 
 ## Data Flow
+
+> Note: This diagram shows **allow-or-ask** mode. In **hands-free** mode, "escalate" becomes "deny with reason" and "exit 0 / no output" becomes a deny JSON response.
 
 ```
                     ┌─────────────────────────┐
@@ -113,7 +115,7 @@ Two backends:
 
 2. **API backend** (direct Anthropic SDK): Uses `@anthropic-ai/sdk` with `ANTHROPIC_API_KEY`. ~2x faster than CLI (no CLI startup overhead). Lazy-imported to avoid loading the SDK when not needed.
 
-Both backends parse the AI response (JSON with decision/confidence/reasoning), handle timeouts, and fall back to escalation on any error.
+Both backends parse the AI response (JSON with decision/confidence/reasoning), handle timeouts, and fall back to escalation (allow-or-ask) or denial (hands-free) on any error.
 
 ### `logger.ts` — Audit Logging
 Appends decision records to the log file. Each record includes timestamp, decision, confidence, model, latency, tool name, input summary, and reasoning. Errors in logging are silently swallowed (never break the hook).

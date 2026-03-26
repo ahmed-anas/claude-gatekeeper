@@ -2,7 +2,7 @@
  * Main entry point for the Claude Gatekeeper hook.
  *
  * Handles both hook types:
- * - PermissionRequest: approve safe commands, escalate uncertain ones
+ * - PermissionRequest (allow-or-ask mode): approve safe commands, escalate uncertain ones
  * - PreToolUse (hands-free mode): approve safe commands, deny dangerous ones
  *
  * Safety invariant:

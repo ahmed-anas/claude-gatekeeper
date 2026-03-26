@@ -24,13 +24,14 @@ export function printModeExplanation(mode: string): void {
     console.log('  - Safe commands are auto-approved by AI');
     console.log('  - Dangerous or uncertain commands are denied with a reason');
     console.log('  - Claude receives the denial reason and can adjust its approach');
-    console.log('  - The permission prompt is never shown — everything is handled in the background');
+    console.log('  - The permission prompt is never shown — the user is completely away');
+    console.log('  - On errors or timeouts, requests are denied (fail-closed)');
   } else {
     console.log('  How allow-or-ask mode works:');
     console.log('  - Safe commands are auto-approved by AI');
     console.log('  - For uncertain commands, the permission prompt appears while AI evaluates in the background');
     console.log('  - If you approve/deny before AI responds, your choice takes effect immediately');
-    console.log('  - If you wait and AI finishes first, its decision (approve or show prompt) applies');
+    console.log('  - If you wait and AI finishes first and approves, the prompt disappears and Claude continues');
     console.log('  - You always have the final say — AI never auto-denies in this mode');
   }
 }

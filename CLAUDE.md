@@ -33,8 +33,8 @@ nvm exec npm test
 - `src/cli-prompt.ts` — Buffered readline for interactive prompts
 
 ## Key Rules
-- NEVER auto-deny. Only approve or escalate to user.
-- Any error = escalate (fail-safe).
+- In allow-or-ask mode: NEVER auto-deny. Only approve or escalate to user. Any error = escalate (fail-safe).
+- In hands-free mode: approve safe commands, deny uncertain/dangerous ones. Any error = deny (fail-closed, no human to ask).
 - Use synchronous file I/O for speed (short-lived process).
 - Lazy-import `@anthropic-ai/sdk` only when API backend is used.
 - Static rules are checked before AI to avoid unnecessary API calls.
