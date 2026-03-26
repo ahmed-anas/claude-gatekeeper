@@ -4,7 +4,7 @@
  * Checks tool inputs against configurable wildcard patterns to immediately
  * escalate or approve without calling the AI. This handles two cases:
  *
- * 1. Obviously dangerous commands (rm -rf, sudo, curl|sh) → escalate immediately
+ * 1. Obviously dangerous commands (rm -rf, sudo, curl|sh) → escalate (allow-or-ask) or deny (hands-free)
  * 2. User-defined safe patterns → approve immediately
  *
  * Uses a custom wildcard matcher instead of minimatch because minimatch
@@ -73,7 +73,7 @@ function matchesAnyPattern(value: string, patterns: string[]): boolean {
 /**
  * Check static rules against the hook input.
  * Returns 'approve' if it matches an always-approve pattern,
- * 'escalate' if it matches an always-escalate pattern,
+ * 'escalate' (allow-or-ask) or 'deny' (hands-free) if it matches a dangerous pattern,
  * 'evaluate' if no static rule matches (needs AI evaluation).
  */
 export function checkRules(input: HookInput, config: ApproverConfig, mode: GatekeeperMode = 'allow-or-ask'): RuleDecision {

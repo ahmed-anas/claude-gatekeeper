@@ -1,7 +1,7 @@
 # Gatekeeper Policy
 
 This file defines the policy for the Claude Gatekeeper hook.
-Edit this file to customize which tool invocations are auto-approved or escalated to the user.
+Edit this file to customize which tool invocations are auto-approved, escalated to the user (allow-or-ask mode), or denied (hands-free mode).
 
 ## General Rules
 - /tmp and /private/tmp are equivalent on macOS (symlink). Treat them as approved scratch/workspace directories for ALL operations (bash, read, write, edit, etc.) — not just file writes.

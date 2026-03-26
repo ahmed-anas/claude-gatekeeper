@@ -11,13 +11,14 @@ Permission Request → Static Rules → AI Evaluation → Decision
                     Escalate/Approve    Approve (high confidence)
                                        Escalate (low confidence or error)
 ```
+> Note: This flow shows **allow-or-ask** mode. In **hands-free** mode, "escalate" becomes "deny with reason" and errors result in denial instead of escalation.
 
 1. **Claude Code triggers a permission prompt** for a tool it wants to use (Bash, Write, Edit, etc.)
 2. **Static rules check first** — obviously dangerous commands (rm -rf, sudo, curl|sh) are immediately escalated; known-safe patterns are immediately approved
 3. **AI evaluation** — for everything else, Claude Haiku analyzes the request with full context (your settings, CLAUDE.md, project gatekeeper policy)
 4. **Decision** — if AI confidence meets or exceeds the threshold (default: `high`), it auto-approves. Otherwise, the normal permission prompt appears
 
-**Key safety guarantee:** The tool **never auto-denies**. It can only approve or pass through to you. Any error (API failure, timeout, parse error) results in the normal prompt appearing.
+**Key safety guarantee:** In **allow-or-ask** mode, the tool never auto-denies — it can only approve or pass through to you. Any error results in the normal prompt appearing. In **hands-free** mode, uncertain or dangerous commands are denied with a reason (Claude adjusts its approach), and errors result in denial (fail-closed).
 
 ## Installation
 
@@ -83,11 +84,11 @@ claude-gatekeeper mode allow-or-ask # switch to allow-or-ask
 
 ### allow-or-ask (default)
 
-Safe commands are auto-approved by AI. Everything else shows the normal permission prompt. The user is always in the loop for uncertain decisions.
+Safe commands are auto-approved by AI. For uncertain commands, the permission prompt appears to the user while the hook evaluates in the background. If the user acts first (approve/reject), their choice takes effect immediately. If the hook finishes first and approves, the prompt disappears and Claude continues. The hook never denies in this mode — it only approves or lets the prompt stay.
 
 ### hands-free
 
-No user interaction required. Safe commands are auto-approved, dangerous ones are **denied with a reason** that Claude can read and adjust to. Ideal for unattended/automated workflows.
+The permission prompt **never appears** — the user is completely away. Safe commands are auto-approved, dangerous or uncertain ones are **denied with a reason** that Claude can read and adjust to. Errors result in denial (fail-closed). Ideal for unattended/automated workflows.
 
 When a command is denied, Claude receives a message like:
 > *"This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands. Reason: [explanation]. You may attempt alternative commands."*
@@ -218,13 +219,15 @@ When a request passes static rules without a match, it goes to Claude Haiku for 
    - Your project's `GATEKEEPER_POLICY.md` (if present)
    - Excerpts from your `CLAUDE.md` files (project context)
 
-The AI responds with a JSON object: `{"decision": "approve"|"escalate", "confidence": "<level>", "reasoning": "..."}`. If confidence meets the configured threshold (default: `high`), the decision is applied. Otherwise it escalates.
+The AI responds with a JSON object: `{"decision": "approve"|"escalate", "confidence": "<level>", "reasoning": "..."}`. If confidence meets the configured threshold (default: `high`), the decision is applied. Otherwise it escalates. In hands-free mode, "escalate" is converted to "deny" with the reasoning passed to Claude so it can adjust its approach.
 
 The prompt is deliberately conservative — "when in doubt, ALWAYS escalate" — since a false escalation just means you see a normal prompt, while a false approval could be dangerous.
 
 **Response parsing** is resilient: it extracts JSON from the response, falls back to keyword matching if JSON is malformed, and defaults to escalation if nothing can be parsed.
 
 ## Decision Flow
+
+> Note: This diagram shows **allow-or-ask** mode. In **hands-free** mode, "escalate" becomes "deny with reason" and errors result in denial instead of escalation.
 
 ```
                     ┌─────────────────┐

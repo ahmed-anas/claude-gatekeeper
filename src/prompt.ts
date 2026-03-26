@@ -3,7 +3,8 @@
  *
  * Builds the system prompt and user message that are sent to Claude for
  * permission evaluation. The system prompt defines the security evaluator
- * role with clear APPROVE and ESCALATE criteria. The user message includes:
+ * role with clear APPROVE and ESCALATE criteria (allow-or-ask) or APPROVE
+ * and DENY criteria (hands-free). The user message includes:
  *
  * - Tool name and input (what's being requested)
  * - Working directory (location context)
@@ -12,9 +13,10 @@
  * - GATEKEEPER_POLICY.md (project-specific rules if present)
  * - CLAUDE.md excerpts (project context)
  *
- * The prompt is designed to make the AI conservative: "when in doubt,
- * ALWAYS escalate" since false escalations are cheap but false approvals
- * could be dangerous.
+ * The prompt is designed to make the AI conservative: in allow-or-ask mode,
+ * "when in doubt, ALWAYS escalate" since false escalations are cheap (user
+ * just sees a prompt). In hands-free mode, "when in doubt, ALWAYS deny"
+ * since there is no human to ask and false approvals could be dangerous.
  */
 
 import { GatekeeperMode, HookInput, PromptContext } from './types';
