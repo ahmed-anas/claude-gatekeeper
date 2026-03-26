@@ -96,6 +96,18 @@ When a command is denied, Claude receives a message like:
 
 Full autonomous mode with extended capabilities. Not yet implemented.
 
+## Enable / Disable
+
+Quickly toggle the gatekeeper without uninstalling:
+
+```bash
+claude-gatekeeper disable   # pause — hooks escalate all requests to user
+claude-gatekeeper enable    # resume AI evaluation
+claude-gatekeeper status    # shows current state (active / paused / not installed)
+```
+
+When disabled, hooks remain registered but immediately escalate every request to the normal permission prompt. No AI calls are made. Re-enable anytime with `claude-gatekeeper enable`.
+
 ## AI Backend
 
 ### Default: `claude -p` (zero config)
@@ -134,7 +146,7 @@ Create `~/.claude/claude-gatekeeper/config.json` (all fields optional):
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `enabled` | `true` | Master switch — set to `false` to disable |
+| `enabled` | `true` | Master switch — use `claude-gatekeeper enable/disable` to toggle |
 | `backend` | `"cli"` | `"cli"` for `claude -p`, `"api"` for direct Anthropic API |
 | `model` | `"haiku"` | Model name (used as-is for CLI, mapped for API) |
 | `confidenceThreshold` | `"high"` | Minimum confidence to auto-approve: `"none"`, `"low"`, `"medium"`, `"high"`, `"absolute"` |

@@ -21,6 +21,16 @@ nvm exec npm test
 - `src/prompt.ts` — Constructs system prompt and user message for AI evaluation
 - `src/logger.ts` — File-based decision audit logging
 - `src/rules.ts` — Static wildcard pattern matching (always-escalate/approve rules, no AI needed)
+- `src/permissions.ts` — Checks tool uses against user's Claude Code permission lists
+- `src/project-dir.ts` — Resolves real project directory from transcript_path
+- `src/cli.ts` — Commander.js CLI with subcommands: setup, status, uninstall, mode, enable, disable
+- `src/setup.ts` — Interactive setup wizard
+- `src/uninstall.ts` — Uninstall command
+- `src/status.ts` — Status display command
+- `src/mode.ts` — Mode switching (allow-or-ask / hands-free)
+- `src/enable.ts` — Enable/disable toggle
+- `src/fs-utils.ts` — Shared file I/O utilities
+- `src/cli-prompt.ts` — Buffered readline for interactive prompts
 
 ## Key Rules
 - NEVER auto-deny. Only approve or escalate to user.

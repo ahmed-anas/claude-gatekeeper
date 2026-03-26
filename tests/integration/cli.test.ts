@@ -321,3 +321,75 @@ describe('CLI: setup → uninstall round-trip', () => {
     expect(hooks.PermissionRequest).toBeUndefined();
   });
 });
+
+describe('CLI: enable/disable', () => {
+  let tmpHome: string;
+
+  beforeEach(() => {
+    tmpHome = createTmpHome();
+  });
+
+  afterEach(() => {
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it('disable sets enabled:false in config', async () => {
+    const result = await runCli(['disable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('disabled');
+
+    const configPath = join(tmpHome, '.claude', 'claude-gatekeeper', 'config.json');
+    const config = readJson(configPath);
+    expect(config.enabled).toBe(false);
+  });
+
+  it('enable sets enabled:true in config', async () => {
+    // First disable, then enable
+    await runCli(['disable'], { HOME: tmpHome });
+    const result = await runCli(['enable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('enabled');
+
+    const configPath = join(tmpHome, '.claude', 'claude-gatekeeper', 'config.json');
+    const config = readJson(configPath);
+    expect(config.enabled).toBe(true);
+  });
+
+  it('shows "already enabled" when already enabled', async () => {
+    // Default state is enabled, but we need a config file for it to be explicit
+    const configDir = join(tmpHome, '.claude', 'claude-gatekeeper');
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, 'config.json'), JSON.stringify({ enabled: true }));
+
+    const result = await runCli(['enable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toLowerCase()).toContain('already enabled');
+  });
+
+  it('shows "already disabled" when already disabled', async () => {
+    // First disable
+    await runCli(['disable'], { HOME: tmpHome });
+    // Then disable again
+    const result = await runCli(['disable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toLowerCase()).toContain('already disabled');
+  });
+
+  it('status after disable shows "paused"', async () => {
+    // Setup hooks first, then disable
+    await runCli(['setup'], { HOME: tmpHome }, 'n\nn\n');
+    await runCli(['disable'], { HOME: tmpHome });
+
+    const result = await runCli(['status'], { HOME: tmpHome });
+    expect(result.stdout).toContain('paused');
+  });
+
+  it('round-trip: setup → disable → enable → status shows active', async () => {
+    await runCli(['setup'], { HOME: tmpHome }, 'n\nn\n');
+    await runCli(['disable'], { HOME: tmpHome });
+    await runCli(['enable'], { HOME: tmpHome });
+
+    const result = await runCli(['status'], { HOME: tmpHome });
+    expect(result.stdout).toContain('active');
+  });
+});

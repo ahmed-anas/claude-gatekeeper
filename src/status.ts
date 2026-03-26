@@ -17,7 +17,7 @@ function checkHookType(settings: Record<string, unknown>, hookType: string): boo
   );
 }
 
-function getHookStatus(): { permissionRequest: boolean; preToolUse: boolean } {
+export function getHookStatus(): { permissionRequest: boolean; preToolUse: boolean } {
   const settingsPath = join(homedir(), '.claude', 'settings.json');
   try {
     const settings = JSON.parse(readFileSync(settingsPath, 'utf-8'));
@@ -46,11 +46,19 @@ export function status(): void {
     console.log('            Run `claude-gatekeeper setup` to register.');
   }
 
+  const config = loadConfig();
+  const hasHooks = hooks.permissionRequest || hooks.preToolUse;
+  if (hasHooks && config.enabled) {
+    console.log('  State:    active');
+  } else if (hasHooks && !config.enabled) {
+    console.log('  State:    paused (disabled)');
+  } else {
+    console.log('  State:    not installed');
+  }
+
   const configPath = getConfigPath();
   const configExists = existsSync(configPath);
   console.log(`  Config:   ${configExists ? configPath : 'using defaults'}`);
-
-  const config = loadConfig();
   console.log(`  Enabled:  ${config.enabled}`);
   console.log(`  Mode:     ${config.mode}`);
   console.log(`  Backend:  ${config.backend}`);
