@@ -62,7 +62,7 @@ export async function evaluateWithCli(
   const fullPrompt = `${systemPrompt}\n\n---\n\n${userMessage}`;
 
   return new Promise((resolve) => {
-    const proc = spawn('claude', ['-p', '--model', config.model, '--output-format', 'json'], {
+    const proc = spawn('claude', ['-p', '--model', config.model, '--output-format', 'json', '--no-session-persistence'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env, CLAUDECODE: '' },
       timeout: config.timeoutMs,
