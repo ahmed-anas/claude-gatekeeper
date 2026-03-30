@@ -2,7 +2,7 @@
 /**
  * Fake Claude CLI for e2e testing.
  *
- * Mimics `claude -p --model haiku --output-format json`.
+ * Mimics `claude -p --model haiku --output-format json --no-session-persistence`.
  * Behavior controlled by the FAKE_CLAUDE_BEHAVIOR env var.
  *
  * This script reads stdin (the prompt) and returns a canned JSON response,

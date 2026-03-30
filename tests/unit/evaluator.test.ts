@@ -219,7 +219,7 @@ describe('evaluateWithCli', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       'claude',
-      ['-p', '--model', 'sonnet', '--output-format', 'json'],
+      ['-p', '--model', 'sonnet', '--output-format', 'json', '--no-session-persistence'],
       expect.objectContaining({
         stdio: ['pipe', 'pipe', 'pipe'],
         env: expect.objectContaining({ CLAUDECODE: '' }),
