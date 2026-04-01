@@ -135,4 +135,14 @@ describe('notify config', () => {
     const config = mergeConfig({});
     expect(config.notify).toBeUndefined();
   });
+
+  it('strips notify if topic is a number', () => {
+    const config = mergeConfig({ notify: { topic: 123 as any } });
+    expect(config.notify).toBeUndefined();
+  });
+
+  it('strips notify if topic is null', () => {
+    const config = mergeConfig({ notify: { topic: null as any } });
+    expect(config.notify).toBeUndefined();
+  });
 });

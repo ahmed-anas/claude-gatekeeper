@@ -53,6 +53,69 @@ describe('formatNotification', () => {
   });
 });
 
+describe('notifyAndWait', () => {
+  it('returns timeout immediately when topic is empty', async () => {
+    const { notifyAndWait } = await import('../../src/notify');
+    const config = {
+      enabled: true, mode: 'allow-or-ask' as const, backend: 'cli' as const,
+      model: 'haiku', confidenceThreshold: 'high' as const, timeoutMs: 10000,
+      maxContextLength: 2000, logFile: '/tmp/test.log', logLevel: 'info' as const,
+      alwaysEscalatePatterns: [], alwaysApprovePatterns: [],
+      notify: { topic: '', server: 'https://ntfy.sh', timeoutMs: 5000 },
+    };
+    const input = {
+      session_id: 'test', cwd: '/project',
+      hook_event_name: 'PermissionRequest' as const,
+      tool_name: 'Bash', tool_input: { command: 'npm test' },
+    };
+
+    const result = await notifyAndWait(input, 'test reason', config);
+    expect(result).toBe('timeout');
+  });
+
+  it('returns timeout when notify config is undefined', async () => {
+    const { notifyAndWait } = await import('../../src/notify');
+    const config = {
+      enabled: true, mode: 'allow-or-ask' as const, backend: 'cli' as const,
+      model: 'haiku', confidenceThreshold: 'high' as const, timeoutMs: 10000,
+      maxContextLength: 2000, logFile: '/tmp/test.log', logLevel: 'info' as const,
+      alwaysEscalatePatterns: [], alwaysApprovePatterns: [],
+    };
+    const input = {
+      session_id: 'test', cwd: '/project',
+      hook_event_name: 'PermissionRequest' as const,
+      tool_name: 'Bash', tool_input: { command: 'npm test' },
+    };
+
+    const result = await notifyAndWait(input, 'test reason', config);
+    expect(result).toBe('timeout');
+  });
+});
+
+describe('formatNotification edge cases', () => {
+  it('uses "File" label for Edit tool', () => {
+    const input = {
+      session_id: 'abc12345', cwd: '/project',
+      hook_event_name: 'PermissionRequest' as const,
+      tool_name: 'Edit', tool_input: { file_path: '/project/src/app.ts' },
+    };
+    const { message } = formatNotification(input, 'test');
+    expect(message).toContain('Tool: Edit');
+    expect(message).toContain('File:');
+  });
+
+  it('uses "File" label for unknown tools', () => {
+    const input = {
+      session_id: 'abc12345', cwd: '/project',
+      hook_event_name: 'PermissionRequest' as const,
+      tool_name: 'Glob', tool_input: { pattern: '**/*.ts' },
+    };
+    const { message } = formatNotification(input, 'test');
+    expect(message).toContain('Tool: Glob');
+    expect(message).toContain('File:');
+  });
+});
+
 describe('parseSSEResponse', () => {
   it('parses approve response', () => {
     expect(parseSSEResponse('approve')).toBe('approve');
