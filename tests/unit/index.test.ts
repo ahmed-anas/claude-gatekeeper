@@ -20,6 +20,9 @@ jest.mock('../../src/logger', () => ({
   logError: jest.fn(),
   logWarning: jest.fn(),
 }));
+jest.mock('../../src/notify', () => ({
+  notifyAndWait: jest.fn(),
+}));
 
 import { readFileSync } from 'fs';
 import { loadConfig } from '../../src/config';
@@ -28,6 +31,7 @@ import { buildPrompt } from '../../src/prompt';
 import { evaluate } from '../../src/evaluator';
 import { checkRules } from '../../src/rules';
 import { logDecision, logError } from '../../src/logger';
+import { notifyAndWait } from '../../src/notify';
 import { main, writePermissionApproval, writePreToolUseAllow, writePreToolUseDeny } from '../../src/index';
 
 const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
@@ -38,6 +42,7 @@ const mockEvaluate = evaluate as jest.MockedFunction<typeof evaluate>;
 const mockCheckRules = checkRules as jest.MockedFunction<typeof checkRules>;
 const mockLogDecision = logDecision as jest.MockedFunction<typeof logDecision>;
 const mockLogError = logError as jest.MockedFunction<typeof logError>;
+const mockNotifyAndWait = notifyAndWait as jest.MockedFunction<typeof notifyAndWait>;
 
 const validInput: HookInput = {
   session_id: 'test',
@@ -280,6 +285,67 @@ describe('main()', () => {
 
     // Verify evaluator was called with the built prompt
     expect(mockEvaluate).toHaveBeenCalledWith('sys', 'usr', defaultConfig);
+  });
+
+  // --- Remote notification flows ---
+
+  it('calls notifyAndWait when notify topic is configured and AI escalates', async () => {
+    mockNotifyAndWait.mockResolvedValue('timeout');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_name: 'Bash' }),
+      'Uncertain',
+      configWithNotify
+    );
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  it('approves when notifyAndWait returns approve', async () => {
+    mockNotifyAndWait.mockResolvedValue('approve');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.decision.behavior).toBe('allow');
+  });
+
+  it('does not call notifyAndWait when no topic configured', async () => {
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
   });
 });
 

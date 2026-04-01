@@ -69,13 +69,30 @@ function writeApproval(hookType: 'PermissionRequest' | 'PreToolUse'): void {
   }
 }
 
-function writeDenyOrEscalate(reason: string, mode: GatekeeperMode): void {
+async function handleEscalation(
+  input: HookInput,
+  hookType: 'PermissionRequest' | 'PreToolUse',
+  reason: string,
+  mode: GatekeeperMode,
+  config: ApproverConfig
+): Promise<void> {
   if (mode === 'hands-free') {
     writePreToolUseDeny(reason);
-  } else {
-    // Supervised mode: escalate by exiting silently
-    process.exit(0);
+    return;
   }
+
+  // allow-or-ask: try remote approval if notifications configured
+  if (config.notify?.topic) {
+    const { notifyAndWait } = await import('./notify');
+    const response = await notifyAndWait(input, reason, config);
+    if (response === 'approve') {
+      writeApproval(hookType);
+      return;
+    }
+  }
+
+  // No notification, denied, or timeout → escalate normally
+  process.exit(0);
 }
 
 export async function main(): Promise<void> {
@@ -128,7 +145,7 @@ export async function main(): Promise<void> {
       latencyMs: 0,
     }, config);
     // Hands-free: deny with reason. Supervised: escalate to user.
-    writeDenyOrEscalate(permCheck.reason, mode);
+    await handleEscalation(input, hookType, permCheck.reason, mode, config);
     return;
   }
 
@@ -163,7 +180,7 @@ export async function main(): Promise<void> {
         model: 'static',
         latencyMs: 0,
       }, config);
-      writeDenyOrEscalate(reasoning, mode);
+      await handleEscalation(input, hookType, reasoning, mode, config);
       return;
     }
 
@@ -179,7 +196,7 @@ export async function main(): Promise<void> {
     if (result.decision === 'approve' && meetsThreshold(result.confidence, config.confidenceThreshold)) {
       writeApproval(hookType);
     } else {
-      writeDenyOrEscalate(result.reasoning, mode);
+      await handleEscalation(input, hookType, result.reasoning, mode, config);
     }
   } catch (error) {
     try {
