@@ -13,6 +13,7 @@ export function meetsThreshold(level: ConfidenceLevel, threshold: ConfidenceLeve
 /** JSON structure received on stdin from Claude Code hooks. */
 export interface HookInput {
   session_id: string;
+  session_name?: string;  // Available once Anthropic ships #17188
   transcript_path?: string;
   cwd: string;
   hook_event_name: 'PermissionRequest' | 'PreToolUse';
@@ -63,6 +64,17 @@ export interface ApproverConfig {
   logLevel: 'debug' | 'info' | 'warn';
   alwaysEscalatePatterns: string[];
   alwaysApprovePatterns: string[];
+  notify?: NotifyConfig;
+}
+
+/** Configuration for ntfy.sh push notifications (optional). */
+export interface NotifyConfig {
+  /** ntfy topic name — presence activates notifications. */
+  topic: string;
+  /** ntfy server URL. Default: "https://ntfy.sh" */
+  server?: string;
+  /** How long to wait for phone response in ms. Default: 60000 */
+  timeoutMs?: number;
 }
 
 /** Loaded context for building the AI prompt. */
