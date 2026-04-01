@@ -29,6 +29,8 @@ nvm exec npm test
 - `src/status.ts` — Status display command
 - `src/mode.ts` — Mode switching (allow-or-ask / hands-free)
 - `src/enable.ts` — Enable/disable toggle
+- `src/notify.ts` — ntfy.sh push notification integration (send notifications, listen for SSE responses)
+- `src/notify-setup.ts` — Interactive notification setup wizard
 - `src/fs-utils.ts` — Shared file I/O utilities
 - `src/cli-prompt.ts` — Buffered readline for interactive prompts
 

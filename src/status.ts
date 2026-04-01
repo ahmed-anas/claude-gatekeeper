@@ -71,6 +71,7 @@ export function status(): void {
   const projectPolicy = existsSync(join(cwd, 'GATEKEEPER_POLICY.md'))
     || existsSync(join(cwd, '.claude', 'GATEKEEPER_POLICY.md'));
   console.log(`  Policy:   global=${globalPolicy ? 'yes' : 'no'}, project=${projectPolicy ? 'yes' : 'no'}`);
+  console.log(`  Notify:   ${config.notify?.topic ? `enabled (topic: ${config.notify.topic})` : 'not configured'}`);
 
   console.log(`  Log file: ${config.logFile}`);
   console.log('');
