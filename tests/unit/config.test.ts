@@ -108,3 +108,31 @@ describe('mergeConfig', () => {
     expect(config.logFile).toBe('/home/testuser/my-log.log');
   });
 });
+
+describe('notify config', () => {
+  it('passes through valid notify config', () => {
+    const config = mergeConfig({ notify: { topic: 'test-topic' } });
+    expect(config.notify).toEqual({ topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 60000 });
+  });
+
+  it('defaults server and timeoutMs', () => {
+    const config = mergeConfig({ notify: { topic: 'abc' } });
+    expect(config.notify!.server).toBe('https://ntfy.sh');
+    expect(config.notify!.timeoutMs).toBe(60000);
+  });
+
+  it('clamps notify timeoutMs to [5000, 120000]', () => {
+    expect(mergeConfig({ notify: { topic: 'a', timeoutMs: 1000 } }).notify!.timeoutMs).toBe(5000);
+    expect(mergeConfig({ notify: { topic: 'a', timeoutMs: 999999 } }).notify!.timeoutMs).toBe(120000);
+  });
+
+  it('strips notify if topic is empty', () => {
+    const config = mergeConfig({ notify: { topic: '' } });
+    expect(config.notify).toBeUndefined();
+  });
+
+  it('leaves notify undefined when not provided', () => {
+    const config = mergeConfig({});
+    expect(config.notify).toBeUndefined();
+  });
+});
