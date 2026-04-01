@@ -144,8 +144,13 @@ export async function main(): Promise<void> {
       model: 'permissions',
       latencyMs: 0,
     }, config);
-    // Hands-free: deny with reason. Supervised: escalate to user.
-    await handleEscalation(input, hookType, permCheck.reason, mode, config);
+    // Permission deny list is an explicit user choice — never override via remote approval.
+    // Hands-free: deny with reason. Supervised: escalate to user (no notify).
+    if (mode === 'hands-free') {
+      writePreToolUseDeny(permCheck.reason);
+    } else {
+      process.exit(0);
+    }
     return;
   }
 
