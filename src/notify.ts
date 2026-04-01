@@ -85,7 +85,10 @@ function postJson(url: string, body: string): Promise<boolean> {
     const req = mod.request(
       parsed,
       { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } },
-      (res) => resolve(res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300)
+      (res) => {
+        res.resume(); // Drain response body so Node can close the socket
+        resolve(res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300);
+      }
     );
     req.on('error', () => resolve(false));
     req.write(body);
@@ -93,15 +96,23 @@ function postJson(url: string, body: string): Promise<boolean> {
   });
 }
 
-/** Listen on the SSE response topic for approve/deny. */
+/** SSE listener handle — allows cancellation from outside. */
+interface SSEListener {
+  promise: Promise<'approve' | 'deny' | 'timeout'>;
+  cancel: () => void;
+}
+
+/** Listen on the SSE response topic for approve/deny. Returns a cancellable handle. */
 function listenForResponse(
   server: string,
   topic: string,
   timeoutMs: number
-): Promise<'approve' | 'deny' | 'timeout'> {
-  return new Promise((resolve) => {
+): SSEListener {
+  let finish: (result: 'approve' | 'deny' | 'timeout') => void;
+
+  const promise = new Promise<'approve' | 'deny' | 'timeout'>((resolve) => {
     let resolved = false;
-    const finish = (result: 'approve' | 'deny' | 'timeout') => {
+    finish = (result: 'approve' | 'deny' | 'timeout') => {
       if (resolved) return;
       resolved = true;
       clearTimeout(timer);
@@ -140,6 +151,8 @@ function listenForResponse(
 
     req.on('error', () => finish('timeout'));
   });
+
+  return { promise, cancel: () => finish!('timeout') };
 }
 
 /**
@@ -163,16 +176,17 @@ export async function notifyAndWait(
   logDebug(`notify: sending to ${server}/${notify.topic}`, config);
 
   // Start listening BEFORE sending so we don't miss a fast response
-  const responsePromise = listenForResponse(server, notify.topic, timeoutMs);
+  const listener = listenForResponse(server, notify.topic, timeoutMs);
 
   const sent = await postJson(`${server}/${notify.topic}`, payload);
   if (!sent) {
+    listener.cancel(); // Clean up SSE connection and timer
     logDebug('notify: failed to send notification', config);
     return 'timeout';
   }
 
   logDebug('notify: notification sent, waiting for response...', config);
-  const result = await responsePromise;
+  const result = await listener.promise;
   logDebug(`notify: response=${result}`, config);
   return result;
 }
@@ -205,8 +219,11 @@ export async function sendTestApproval(
     'Please tap "Approve" to confirm your setup is working.'
   );
 
-  const responsePromise = listenForResponse(server, topic, timeoutMs);
+  const listener = listenForResponse(server, topic, timeoutMs);
   const sent = await postJson(`${server}/${topic}`, payload);
-  if (!sent) return 'timeout';
-  return responsePromise;
+  if (!sent) {
+    listener.cancel();
+    return 'timeout';
+  }
+  return listener.promise;
 }
