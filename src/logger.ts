@@ -21,7 +21,7 @@ function timestamp(): string {
   return new Date().toISOString();
 }
 
-function summarizeInput(input: HookInput): string {
+export function summarizeInput(input: HookInput): string {
   if (input.tool_name === 'Bash') {
     const cmd = String(input.tool_input.command || '');
     return cmd.length > 120 ? cmd.slice(0, 117) + '...' : cmd;
