@@ -9,6 +9,7 @@
  *   (none)  — Run as a PermissionRequest hook (reads stdin)
  */
 
+import { existsSync } from 'fs';
 import { Command } from 'commander';
 import { main as runHook } from './index';
 import { setup } from './setup';
@@ -16,6 +17,10 @@ import { status } from './status';
 import { uninstall } from './uninstall';
 import { setMode } from './mode';
 import { setEnabled } from './enable';
+import { notifySetup } from './notify-setup';
+import { sendTestNotification } from './notify';
+import { loadConfig, getConfigPath } from './config';
+import { readJson, writeJson } from './fs-utils';
 
 const program = new Command();
 
@@ -92,6 +97,67 @@ program
       setEnabled(false);
     } catch (err) {
       console.error(`Disable failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+const notify = program
+  .command('notify')
+  .description('Manage push notifications for remote approval');
+
+notify
+  .command('setup')
+  .description('Interactive setup wizard for push notifications')
+  .action(async () => {
+    try {
+      await notifySetup();
+    } catch (err) {
+      console.error(`Notify setup failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+notify
+  .command('test')
+  .description('Send a test notification to verify your setup')
+  .action(async () => {
+    try {
+      const config = loadConfig();
+      if (!config.notify?.topic) {
+        console.error('\nNotifications are not configured. Run `claude-gatekeeper notify setup` first.\n');
+        process.exit(1);
+      }
+      const server = config.notify.server || 'https://ntfy.sh';
+      console.log(`\nSending test notification to ${server}/${config.notify.topic}...`);
+      const sent = await sendTestNotification(config.notify.topic, server);
+      if (sent) {
+        console.log('  [ok] Notification sent! Check your phone.\n');
+      } else {
+        console.error('  [error] Failed to send notification.\n');
+        process.exit(1);
+      }
+    } catch (err) {
+      console.error(`Notify test failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+notify
+  .command('disable')
+  .description('Remove notification configuration')
+  .action(() => {
+    try {
+      const configPath = getConfigPath();
+      if (!existsSync(configPath)) {
+        console.log('\nNotifications are not configured.\n');
+        return;
+      }
+      const existing = readJson(configPath) ?? {};
+      delete (existing as Record<string, unknown>).notify;
+      writeJson(configPath, existing);
+      console.log('\nNotifications disabled. Config updated.\n');
+    } catch (err) {
+      console.error(`Notify disable failed: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     }
   });

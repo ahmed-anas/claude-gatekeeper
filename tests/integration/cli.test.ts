@@ -322,6 +322,66 @@ describe('CLI: setup → uninstall round-trip', () => {
   });
 });
 
+describe('CLI: notify', () => {
+  let tmpHome: string;
+
+  beforeEach(() => {
+    tmpHome = createTmpHome();
+  });
+
+  afterEach(() => {
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  it('notify disable removes notify config', async () => {
+    // Create config with notify
+    const configDir = join(tmpHome, '.claude', 'claude-gatekeeper');
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, 'config.json'), JSON.stringify({
+      enabled: true,
+      notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 60000 },
+    }));
+
+    const result = await runCli(['notify', 'disable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('disabled');
+
+    const config = readJson(join(configDir, 'config.json'));
+    expect(config.notify).toBeUndefined();
+    expect(config.enabled).toBe(true); // other config preserved
+  });
+
+  it('notify disable when no config exists', async () => {
+    const result = await runCli(['notify', 'disable'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('not configured');
+  });
+
+  it('notify test fails when no topic configured', async () => {
+    const result = await runCli(['notify', 'test'], { HOME: tmpHome });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('not configured');
+  });
+
+  it('status shows notify not configured', async () => {
+    const result = await runCli(['status'], { HOME: tmpHome });
+    expect(result.stdout).toContain('Notify:');
+    expect(result.stdout).toContain('not configured');
+  });
+
+  it('status shows notify enabled when topic is configured', async () => {
+    const configDir = join(tmpHome, '.claude', 'claude-gatekeeper');
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, 'config.json'), JSON.stringify({
+      notify: { topic: 'my-test-topic' },
+    }));
+
+    const result = await runCli(['status'], { HOME: tmpHome });
+    expect(result.stdout).toContain('Notify:');
+    expect(result.stdout).toContain('my-test-topic');
+  });
+});
+
 describe('CLI: enable/disable', () => {
   let tmpHome: string;
 

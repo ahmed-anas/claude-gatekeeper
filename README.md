@@ -109,6 +109,33 @@ claude-gatekeeper status    # shows current state (active / paused / not install
 
 When disabled, hooks remain registered but immediately escalate every request to the normal permission prompt. No AI calls are made. Re-enable anytime with `claude-gatekeeper enable`.
 
+## Push Notifications (Remote Approval)
+
+Approve or deny escalated requests from your phone via [ntfy.sh](https://ntfy.sh) push notifications. Only active in allow-or-ask mode.
+
+### Setup
+
+```bash
+claude-gatekeeper notify setup
+```
+
+The interactive wizard guides you through:
+1. Installing the ntfy app on your phone
+2. Subscribing to a secure generated topic
+3. Verifying notifications work end-to-end
+
+### How it works
+
+When the gatekeeper escalates a request, your phone receives a push notification with **Approve** and **Deny** buttons. The terminal prompt also appears simultaneously — whichever you respond to first wins.
+
+### Commands
+
+```bash
+claude-gatekeeper notify setup    # interactive setup wizard
+claude-gatekeeper notify test     # send a test notification
+claude-gatekeeper notify disable  # remove notification config
+```
+
 ## AI Backend
 
 ### Default: `claude -p` (zero config)

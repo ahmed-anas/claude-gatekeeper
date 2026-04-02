@@ -12,7 +12,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { ApproverConfig, CONFIDENCE_LEVELS, ConfidenceLevel, GATEKEEPER_MODES, GatekeeperMode } from './types';
+import { ApproverConfig, CONFIDENCE_LEVELS, ConfidenceLevel, GATEKEEPER_MODES, GatekeeperMode, NotifyConfig } from './types';
 
 const DEFAULT_CONFIG: ApproverConfig = {
   enabled: true,
@@ -100,6 +100,19 @@ export function mergeConfig(userConfig: Partial<ApproverConfig>): ApproverConfig
         (p) => !DEFAULT_CONFIG.alwaysEscalatePatterns.includes(p)
       ),
     ];
+  }
+
+  // Validate and default notify config
+  if (merged.notify) {
+    if (!merged.notify.topic || typeof merged.notify.topic !== 'string') {
+      merged.notify = undefined;
+    } else {
+      merged.notify = {
+        topic: merged.notify.topic,
+        server: merged.notify.server || 'https://ntfy.sh',
+        timeoutMs: Math.max(5000, Math.min(120000, merged.notify.timeoutMs || 60000)),
+      };
+    }
   }
 
   return merged;

@@ -14,11 +14,16 @@ jest.mock('../../src/context', () => ({ loadContext: jest.fn() }));
 jest.mock('../../src/prompt', () => ({ buildPrompt: jest.fn() }));
 jest.mock('../../src/evaluator', () => ({ evaluate: jest.fn() }));
 jest.mock('../../src/rules', () => ({ checkRules: jest.fn() }));
+jest.mock('../../src/permissions', () => ({ checkPermissions: jest.fn() }));
+jest.mock('../../src/project-dir', () => ({ resolveProjectDir: jest.fn() }));
 jest.mock('../../src/logger', () => ({
   logDecision: jest.fn(),
   logDebug: jest.fn(),
   logError: jest.fn(),
   logWarning: jest.fn(),
+}));
+jest.mock('../../src/notify', () => ({
+  notifyAndWait: jest.fn(),
 }));
 
 import { readFileSync } from 'fs';
@@ -27,7 +32,10 @@ import { loadContext } from '../../src/context';
 import { buildPrompt } from '../../src/prompt';
 import { evaluate } from '../../src/evaluator';
 import { checkRules } from '../../src/rules';
+import { checkPermissions } from '../../src/permissions';
+import { resolveProjectDir } from '../../src/project-dir';
 import { logDecision, logError } from '../../src/logger';
+import { notifyAndWait } from '../../src/notify';
 import { main, writePermissionApproval, writePreToolUseAllow, writePreToolUseDeny } from '../../src/index';
 
 const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
@@ -38,6 +46,9 @@ const mockEvaluate = evaluate as jest.MockedFunction<typeof evaluate>;
 const mockCheckRules = checkRules as jest.MockedFunction<typeof checkRules>;
 const mockLogDecision = logDecision as jest.MockedFunction<typeof logDecision>;
 const mockLogError = logError as jest.MockedFunction<typeof logError>;
+const mockCheckPermissions = checkPermissions as jest.MockedFunction<typeof checkPermissions>;
+const mockResolveProjectDir = resolveProjectDir as jest.MockedFunction<typeof resolveProjectDir>;
+const mockNotifyAndWait = notifyAndWait as jest.MockedFunction<typeof notifyAndWait>;
 
 const validInput: HookInput = {
   session_id: 'test',
@@ -85,6 +96,8 @@ describe('main()', () => {
     mockLoadContext.mockReturnValue(emptyContext);
     mockBuildPrompt.mockReturnValue({ systemPrompt: 'sys', userMessage: 'usr' });
     mockCheckRules.mockReturnValue('evaluate');
+    mockCheckPermissions.mockReturnValue({ action: 'none' });
+    mockResolveProjectDir.mockReturnValue('/project');
   });
 
   afterEach(() => {
@@ -280,6 +293,168 @@ describe('main()', () => {
 
     // Verify evaluator was called with the built prompt
     expect(mockEvaluate).toHaveBeenCalledWith('sys', 'usr', defaultConfig);
+  });
+
+  // --- Remote notification flows ---
+
+  it('calls notifyAndWait when notify topic is configured and AI escalates', async () => {
+    mockNotifyAndWait.mockResolvedValue('timeout');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_name: 'Bash' }),
+      'Uncertain',
+      configWithNotify
+    );
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  it('approves when notifyAndWait returns approve', async () => {
+    mockNotifyAndWait.mockResolvedValue('approve');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(stdoutSpy).toHaveBeenCalled();
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.decision.behavior).toBe('allow');
+  });
+
+  it('does not call notifyAndWait when no topic configured', async () => {
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate',
+      confidence: 'high',
+      reasoning: 'Uncertain',
+      model: 'cli:haiku',
+      latencyMs: 500,
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  // --- Notify edge cases ---
+
+  it('escalates (not denies) when notifyAndWait returns deny in allow-or-ask mode', async () => {
+    mockNotifyAndWait.mockResolvedValue('deny');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate', confidence: 'high', reasoning: 'Uncertain', model: 'cli:haiku', latencyMs: 500,
+    });
+
+    await main();
+
+    // allow-or-ask mode: deny from phone should ESCALATE (exit 0, no output), never auto-deny
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(stdoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not call notifyAndWait in hands-free mode even if notify is configured', async () => {
+    mockNotifyAndWait.mockResolvedValue('approve');
+    const configWithNotify = {
+      ...defaultConfig,
+      mode: 'hands-free' as const,
+      notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 },
+    };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate', confidence: 'high', reasoning: 'Dangerous', model: 'cli:haiku', latencyMs: 500,
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+    // hands-free: should deny, not approve
+    expect(stdoutSpy).toHaveBeenCalled();
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
+  });
+
+  it('escalates when notifyAndWait throws an error', async () => {
+    mockNotifyAndWait.mockRejectedValue(new Error('Network failure'));
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'escalate', confidence: 'high', reasoning: 'Uncertain', model: 'cli:haiku', latencyMs: 500,
+    });
+
+    await main();
+
+    // Error should be caught, logged, and escalated
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(stdoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not call notifyAndWait when permission deny list matches (even with notify configured)', async () => {
+    mockNotifyAndWait.mockResolvedValue('approve');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckPermissions.mockReturnValue({ action: 'deny', reason: 'Matches deny pattern' });
+
+    await main();
+
+    // Permission deny should NEVER trigger notify — it's an explicit user choice
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  it('sends notification when static rules escalate and notify is configured', async () => {
+    mockNotifyAndWait.mockResolvedValue('timeout');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('escalate');
+
+    await main();
+
+    expect(mockNotifyAndWait).toHaveBeenCalledWith(
+      expect.objectContaining({ tool_name: 'Bash' }),
+      'Matched always-escalate pattern',
+      configWithNotify
+    );
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  it('sends notification when AI confidence is below threshold and notify is configured', async () => {
+    mockNotifyAndWait.mockResolvedValue('timeout');
+    const configWithNotify = { ...defaultConfig, notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 } };
+    mockLoadConfig.mockReturnValue(configWithNotify);
+    mockCheckRules.mockReturnValue('evaluate');
+    mockEvaluate.mockResolvedValue({
+      decision: 'approve', confidence: 'medium', reasoning: 'Probably safe', model: 'cli:haiku', latencyMs: 500,
+    });
+
+    await main();
+
+    // confidence 'medium' < threshold 'high' → escalate → notify
+    expect(mockNotifyAndWait).toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
   });
 });
 
