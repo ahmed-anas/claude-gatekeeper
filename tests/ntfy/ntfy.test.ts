@@ -36,6 +36,15 @@ function makeConfig(server: MockNtfyServer, topic: string, timeoutMs = 5000): Ap
   };
 }
 
+function autoReply(srv: MockNtfyServer, topic: string, body: 'approve' | 'deny', delayMs = 100) {
+  srv.autoRespond({
+    listenTopic: topic,
+    respondToTopic: `${topic}-response`,
+    responseBody: body,
+    delayMs,
+  });
+}
+
 describe('ntfy integration: mock server', () => {
   const server = new MockNtfyServer();
 
@@ -72,12 +81,16 @@ describe('ntfy integration: mock server', () => {
     const actions = payload.actions as Array<Record<string, unknown>>;
     expect(actions).toHaveLength(2);
 
+    expect(actions[0].action).toBe('http');
     expect(actions[0].label).toBe('Approve');
     expect(actions[0].url).toBe(`${server.baseUrl}/${topic}-response`);
+    expect(actions[0].method).toBe('POST');
     expect(actions[0].body).toBe('approve');
 
+    expect(actions[1].action).toBe('http');
     expect(actions[1].label).toBe('Deny');
     expect(actions[1].url).toBe(`${server.baseUrl}/${topic}-response`);
+    expect(actions[1].method).toBe('POST');
     expect(actions[1].body).toBe('deny');
   });
 
@@ -95,12 +108,7 @@ describe('ntfy integration: mock server', () => {
 
   it('notifyAndWait: phone approve → returns "approve"', async () => {
     const topic = 'gk-approve-test';
-    server.autoRespond({
-      listenTopic: topic,
-      respondToTopic: `${topic}-response`,
-      responseBody: 'approve',
-      delayMs: 100,
-    });
+    autoReply(server, topic, 'approve');
 
     const result = await notifyAndWait(BASE_INPUT, 'test', makeConfig(server, topic));
     expect(result).toBe('approve');
@@ -110,12 +118,7 @@ describe('ntfy integration: mock server', () => {
 
   it('notifyAndWait: phone deny → returns "deny"', async () => {
     const topic = 'gk-deny-test';
-    server.autoRespond({
-      listenTopic: topic,
-      respondToTopic: `${topic}-response`,
-      responseBody: 'deny',
-      delayMs: 100,
-    });
+    autoReply(server, topic, 'deny');
 
     const result = await notifyAndWait(BASE_INPUT, 'test', makeConfig(server, topic));
     expect(result).toBe('deny');
@@ -142,14 +145,9 @@ describe('ntfy integration: mock server', () => {
 
   // --- SSE noise ---
 
-  it('SSE: open event ignored, only message events with approve/deny count', async () => {
+  it('SSE: approve response arrives correctly after initial open event noise', async () => {
     const topic = 'gk-sse-noise-test';
-    server.autoRespond({
-      listenTopic: topic,
-      respondToTopic: `${topic}-response`,
-      responseBody: 'approve',
-      delayMs: 200,
-    });
+    autoReply(server, topic, 'approve', 200);
 
     const result = await notifyAndWait(BASE_INPUT, 'test', makeConfig(server, topic));
     expect(result).toBe('approve');
@@ -177,12 +175,7 @@ describe('ntfy integration: mock server', () => {
 
   it('sendTestApproval: phone approve → returns "approve"', async () => {
     const topic = 'gk-test-approval';
-    server.autoRespond({
-      listenTopic: topic,
-      respondToTopic: `${topic}-response`,
-      responseBody: 'approve',
-      delayMs: 100,
-    });
+    autoReply(server, topic, 'approve');
 
     const result = await sendTestApproval(topic, server.baseUrl, 5000);
     expect(result).toBe('approve');
