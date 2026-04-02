@@ -54,6 +54,7 @@ function buildPayload(
     title,
     message,
     tags: ['lock'],
+    priority: 4,
     actions: [
       {
         action: 'http',
