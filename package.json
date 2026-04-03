@@ -1,6 +1,6 @@
 {
   "name": "claude-gatekeeper",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Claude Code hook that uses AI to auto-approve safe permission requests",
   "main": "dist/index.js",
   "bin": {
