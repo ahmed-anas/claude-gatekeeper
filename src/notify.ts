@@ -174,12 +174,13 @@ export async function notifyAndWait(
   const { title, message } = formatNotification(input, reason);
   const payload = buildPayload(notify.topic, server, title, message);
 
-  logDebug(`notify: sending to ${server}/${notify.topic}`, config);
+  logDebug(`notify: sending to ${server}/ (topic: ${notify.topic})`, config);
 
   // Start listening BEFORE sending so we don't miss a fast response
   const listener = listenForResponse(server, notify.topic, timeoutMs);
 
-  const sent = await postJson(`${server}/${notify.topic}`, payload);
+  // ntfy JSON publish endpoint is POST / (root); topic goes in the JSON body
+  const sent = await postJson(`${server}/`, payload);
   if (!sent) {
     listener.cancel(); // Clean up SSE connection and timer
     logDebug('notify: failed to send notification', config);
@@ -202,7 +203,8 @@ export async function sendTestNotification(topic: string, server: string): Promi
     message: 'This is a test from claude-gatekeeper.\nIf you see this, notifications are working!',
     tags: ['white_check_mark'],
   });
-  return postJson(`${server}/${topic}`, payload);
+  // ntfy JSON publish endpoint is POST / (root); topic goes in the JSON body
+  return postJson(`${server}/`, payload);
 }
 
 /**
@@ -221,7 +223,8 @@ export async function sendTestApproval(
   );
 
   const listener = listenForResponse(server, topic, timeoutMs);
-  const sent = await postJson(`${server}/${topic}`, payload);
+  // ntfy JSON publish endpoint is POST / (root); topic goes in the JSON body
+  const sent = await postJson(`${server}/`, payload);
   if (!sent) {
     listener.cancel();
     return 'timeout';

@@ -15,6 +15,8 @@ export interface PublishedMessage {
   body: string;
   parsed: unknown;
   receivedAt: number;
+  /** 'json' = POST /, 'simple' = POST /{topic} */
+  publishMode: 'json' | 'simple';
 }
 
 export interface AutoRespondRule {
@@ -90,8 +92,12 @@ export class MockNtfyServer {
     const url = new URL(req.url || '/', this.baseUrl);
     const parts = url.pathname.split('/').filter(Boolean);
 
-    if (parts.length === 1 && req.method === 'POST') {
-      this.handlePublish(parts[0], req, res);
+    if (parts.length === 0 && req.method === 'POST') {
+      // JSON publish: POST / with topic in JSON body
+      this.handleJsonPublish(req, res);
+    } else if (parts.length === 1 && req.method === 'POST') {
+      // Simple publish: POST /{topic} with plain text body (used by action buttons)
+      this.handleSimplePublish(parts[0], req, res);
     } else if (parts.length === 2 && parts[1] === 'sse' && req.method === 'GET') {
       this.handleSSE(parts[0], req, res);
     } else {
@@ -99,30 +105,58 @@ export class MockNtfyServer {
     }
   }
 
-  private handlePublish(topic: string, req: http.IncomingMessage, res: http.ServerResponse): void {
+  /** Handle POST / — ntfy JSON publish endpoint. Topic comes from the JSON body. */
+  private handleJsonPublish(req: http.IncomingMessage, res: http.ServerResponse): void {
     let body = '';
     req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
     req.on('end', () => {
-      let parsed: unknown = null;
-      try { parsed = JSON.parse(body); } catch { /* not JSON */ }
+      let parsed: Record<string, unknown> | null = null;
+      try { parsed = JSON.parse(body) as Record<string, unknown>; } catch { /* not JSON */ }
 
-      this._published.push({ topic, body, parsed, receivedAt: Date.now() });
+      if (!parsed || typeof parsed.topic !== 'string' || !parsed.topic) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'missing or invalid topic field in JSON body' }));
+        return;
+      }
 
-      // Broadcast to SSE listeners on this topic
+      const topic = parsed.topic;
+      this._published.push({ topic, body, parsed, receivedAt: Date.now(), publishMode: 'json' });
+
+      // Broadcast the full JSON body to SSE listeners (parsed.message is what consumers read)
+      this.broadcast(topic, String(parsed.message || ''));
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ id: String(this.sseCounter++), topic }));
+
+      this.fireAutoResponds(topic);
+    });
+  }
+
+  /** Handle POST /{topic} — ntfy simple publish endpoint. Body is raw message text. */
+  private handleSimplePublish(topic: string, req: http.IncomingMessage, res: http.ServerResponse): void {
+    let body = '';
+    req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+    req.on('end', () => {
+      this._published.push({ topic, body, parsed: null, receivedAt: Date.now(), publishMode: 'simple' });
+
+      // In simple publish, the raw body IS the message
       this.broadcast(topic, body);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ id: String(this.sseCounter++), topic }));
 
-      // Fire auto-respond rules
-      for (const rule of this.autoRules) {
-        if (rule.listenTopic === topic) {
-          const delay = rule.delayMs ?? 100;
-          const timer = setTimeout(() => this.internalPost(rule.respondToTopic, rule.responseBody), delay);
-          this.pendingTimers.push(timer);
-        }
-      }
+      this.fireAutoResponds(topic);
     });
+  }
+
+  private fireAutoResponds(topic: string): void {
+    for (const rule of this.autoRules) {
+      if (rule.listenTopic === topic) {
+        const delay = rule.delayMs ?? 100;
+        const timer = setTimeout(() => this.internalPost(rule.respondToTopic, rule.responseBody), delay);
+        this.pendingTimers.push(timer);
+      }
+    }
   }
 
   private handleSSE(topic: string, _req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -160,7 +194,7 @@ export class MockNtfyServer {
 
   /** Simulate a phone button tap by posting internally to a topic. */
   private internalPost(topic: string, body: string): void {
-    this._published.push({ topic, body, parsed: null, receivedAt: Date.now() });
+    this._published.push({ topic, body, parsed: null, receivedAt: Date.now(), publishMode: 'simple' });
     this.broadcast(topic, body);
   }
 }
