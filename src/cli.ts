@@ -6,6 +6,8 @@
  * Subcommands:
  *   setup   — Interactive setup wizard (register hook, create config)
  *   status  — Show current installation status
+ *   ai      — AI-assisted help (interactive Claude session)
+ *   help    — Show help text and offer to start AI help
  *   (none)  — Run as a PermissionRequest hook (reads stdin)
  */
 
@@ -27,7 +29,29 @@ const program = new Command();
 program
   .name('claude-gatekeeper')
   .description('Claude Code hook that uses AI to auto-approve safe permission requests')
-  .version('1.0.0');
+  .version('1.0.0')
+  .addHelpCommand(false);
+
+/** Print custom help text listing all commands. */
+function printHelp(): void {
+  console.log('\nClaude Gatekeeper — AI-powered permission hook for Claude Code\n');
+  console.log('Usage: claude-gatekeeper <command>\n');
+  console.log('Commands:');
+  console.log('  setup             Register the hook and configure settings');
+  console.log('  status            Show current installation and configuration');
+  console.log('  mode [name]       View or switch operating mode');
+  console.log('  enable            Enable the gatekeeper');
+  console.log('  disable           Disable the gatekeeper (hooks stay registered)');
+  console.log('  notify setup      Set up push notifications');
+  console.log('  notify test       Send a test notification');
+  console.log('  notify disable    Remove notification configuration');
+  console.log('  uninstall         Remove hooks and optionally delete config/logs');
+  console.log('  ai                AI-assisted help for your setup');
+  console.log('  help              Show this help text');
+  console.log('');
+  console.log('Run "claude-gatekeeper ai" for interactive AI-assisted help.');
+  console.log('Run "claude-gatekeeper <command> --help" for details on a command.\n');
+}
 
 program
   .command('setup')
@@ -163,9 +187,49 @@ notify
   });
 
 program
-  .command('hook', { hidden: true, isDefault: true })
-  .description('Run as a PermissionRequest hook (reads stdin)')
+  .command('ai')
+  .description('Start an interactive AI-assisted help session')
   .action(async () => {
+    try {
+      const { aiHelp } = await import('./ai-help');
+      await aiHelp();
+    } catch (err) {
+      console.error(`AI help failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('help')
+  .description('Show help text and offer to start AI help')
+  .action(async () => {
+    printHelp();
+    try {
+      const { ask, closePrompt } = await import('./cli-prompt');
+      const startAi = await ask('  Start an interactive AI help session?', true);
+      closePrompt();
+      if (startAi) {
+        const { aiHelp } = await import('./ai-help');
+        await aiHelp();
+      }
+    } catch (err) {
+      console.error(`AI help failed: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('hook', { hidden: true, isDefault: true })
+  .allowExcessArguments(true)
+  .allowUnknownOption(true)
+  .description('Run as a PermissionRequest hook (reads stdin)')
+  .action(async (_options: unknown, command: Command) => {
+    // If extra args were passed, the user typed an unknown command — show help
+    if (command.args.length > 0) {
+      console.error(`\nUnknown command: "${command.args[0]}"\n`);
+      printHelp();
+      process.exit(1);
+    }
     await runHook();
   });
 

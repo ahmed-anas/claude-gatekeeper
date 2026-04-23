@@ -23,7 +23,7 @@ nvm exec npm test
 - `src/rules.ts` — Static wildcard pattern matching (always-escalate/approve rules, no AI needed)
 - `src/permissions.ts` — Checks tool uses against user's Claude Code permission lists
 - `src/project-dir.ts` — Resolves real project directory from transcript_path
-- `src/cli.ts` — Commander.js CLI with subcommands: setup, status, uninstall, mode, enable, disable
+- `src/cli.ts` — Commander.js CLI with subcommands: setup, status, uninstall, mode, enable, disable, ai, help
 - `src/setup.ts` — Interactive setup wizard
 - `src/uninstall.ts` — Uninstall command
 - `src/status.ts` — Status display command
@@ -31,6 +31,7 @@ nvm exec npm test
 - `src/enable.ts` — Enable/disable toggle
 - `src/notify.ts` — ntfy.sh push notification integration (send notifications, listen for SSE responses)
 - `src/notify-setup.ts` — Interactive notification setup wizard
+- `src/ai-help.ts` — AI-assisted help: consent flow, context building, launches interactive Claude session
 - `src/fs-utils.ts` — Shared file I/O utilities
 - `src/cli-prompt.ts` — Buffered readline for interactive prompts
 
