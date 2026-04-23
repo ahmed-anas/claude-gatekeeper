@@ -65,6 +65,7 @@ export interface ApproverConfig {
   alwaysEscalatePatterns: string[];
   alwaysApprovePatterns: string[];
   notify?: NotifyConfig;
+  aiHelpAcknowledged?: boolean;
 }
 
 /** Configuration for ntfy.sh push notifications (optional). */

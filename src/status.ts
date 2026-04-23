@@ -30,49 +30,56 @@ export function getHookStatus(): { permissionRequest: boolean; preToolUse: boole
   }
 }
 
-export function status(): void {
-  console.log('\nClaude Gatekeeper Status');
-  console.log('=======================\n');
+/** Build status text as a string. Used by both the status command and ai-help context. */
+export function getStatusText(): string {
+  const lines: string[] = [];
 
   const hooks = getHookStatus();
   if (hooks.permissionRequest && hooks.preToolUse) {
-    console.log('  Hooks:    both registered');
+    lines.push('  Hooks:    both registered');
   } else if (hooks.permissionRequest) {
-    console.log('  Hooks:    PermissionRequest only (run setup to add PreToolUse)');
+    lines.push('  Hooks:    PermissionRequest only (run setup to add PreToolUse)');
   } else if (hooks.preToolUse) {
-    console.log('  Hooks:    PreToolUse only (run setup to add PermissionRequest)');
+    lines.push('  Hooks:    PreToolUse only (run setup to add PermissionRequest)');
   } else {
-    console.log('  Hooks:    NOT registered');
-    console.log('            Run `claude-gatekeeper setup` to register.');
+    lines.push('  Hooks:    NOT registered');
   }
 
   const config = loadConfig();
   const hasHooks = hooks.permissionRequest || hooks.preToolUse;
   if (hasHooks && config.enabled) {
-    console.log('  State:    active');
+    lines.push('  State:    active');
   } else if (hasHooks && !config.enabled) {
-    console.log('  State:    paused (disabled)');
+    lines.push('  State:    paused (disabled)');
   } else {
-    console.log('  State:    not installed');
+    lines.push('  State:    not installed');
   }
 
   const configPath = getConfigPath();
   const configExists = existsSync(configPath);
-  console.log(`  Config:   ${configExists ? configPath : 'using defaults'}`);
-  console.log(`  Enabled:  ${config.enabled}`);
-  console.log(`  Mode:     ${config.mode}`);
-  console.log(`  Backend:  ${config.backend}`);
-  console.log(`  Model:    ${config.model}`);
-  console.log(`  Threshold: ${config.confidenceThreshold}`);
+  lines.push(`  Config:   ${configExists ? configPath : 'using defaults'}`);
+  lines.push(`  Enabled:  ${config.enabled}`);
+  lines.push(`  Mode:     ${config.mode}`);
+  lines.push(`  Backend:  ${config.backend}`);
+  lines.push(`  Model:    ${config.model}`);
+  lines.push(`  Threshold: ${config.confidenceThreshold}`);
 
   const home = homedir();
   const cwd = process.cwd();
   const globalPolicy = existsSync(join(home, '.claude', 'claude-gatekeeper', 'GATEKEEPER_POLICY.md'));
   const projectPolicy = existsSync(join(cwd, 'GATEKEEPER_POLICY.md'))
     || existsSync(join(cwd, '.claude', 'GATEKEEPER_POLICY.md'));
-  console.log(`  Policy:   global=${globalPolicy ? 'yes' : 'no'}, project=${projectPolicy ? 'yes' : 'no'}`);
-  console.log(`  Notify:   ${config.notify?.topic ? `enabled (topic: ${config.notify.topic})` : 'not configured'}`);
+  lines.push(`  Policy:   global=${globalPolicy ? 'yes' : 'no'}, project=${projectPolicy ? 'yes' : 'no'}`);
+  lines.push(`  Notify:   ${config.notify?.topic ? `enabled (topic: ${config.notify.topic})` : 'not configured'}`);
+  lines.push(`  AI help:  ${config.aiHelpAcknowledged ? 'acknowledged' : 'not yet used'}`);
+  lines.push(`  Log file: ${config.logFile}`);
 
-  console.log(`  Log file: ${config.logFile}`);
+  return lines.join('\n');
+}
+
+export function status(): void {
+  console.log('\nClaude Gatekeeper Status');
+  console.log('=======================\n');
+  console.log(getStatusText());
   console.log('');
 }
