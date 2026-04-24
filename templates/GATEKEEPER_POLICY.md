@@ -20,6 +20,8 @@ Edit this file to customize which tool invocations are auto-approved, escalated 
 - GitHub CLI: gh pr, gh issue, gh run, gh api
 - Docker compose for local dev: docker-compose up, docker-compose down
 - Creating directories within the project: mkdir
+- Using credentials from the macOS keychain (`security find-generic-password`) as auth for requests to the service that issued them
+- Deleting non-sensitive files from a non-sensitive project directory as part of normal development
 
 ### Write / Edit
 - Writing/editing files within the project directory
@@ -43,7 +45,7 @@ Edit this file to customize which tool invocations are auto-approved, escalated 
 - Broad deletions: rm -rf with wide paths
 - Installing global packages
 - Running unknown binaries from the internet
-- Environment variable exfiltration to external services
+- Handling secrets in any form other than direct injection into a request to the issuing service
 - Package publishing: npm publish, npm unpublish
 - Infrastructure changes: terraform apply, terraform destroy
 - Killing system processes unrelated to the project
