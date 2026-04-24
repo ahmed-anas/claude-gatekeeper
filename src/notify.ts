@@ -78,6 +78,34 @@ function buildPayload(
   });
 }
 
+/** Map a decision result to confirmation notification details. */
+function confirmationDetails(result: 'approve' | 'deny' | 'timeout'): { label: string; tag: string } {
+  switch (result) {
+    case 'approve': return { label: 'Approved', tag: 'white_check_mark' };
+    case 'deny': return { label: 'Denied', tag: 'x' };
+    case 'timeout': return { label: 'Timed Out — Escalated', tag: 'hourglass' };
+  }
+}
+
+/** Send a low-priority confirmation notification to the main topic. */
+async function sendConfirmation(
+  server: string,
+  topic: string,
+  result: 'approve' | 'deny' | 'timeout',
+  toolName: string,
+  summary: string
+): Promise<void> {
+  const { label, tag } = confirmationDetails(result);
+  const payload = JSON.stringify({
+    topic,
+    title: `Claude Gatekeeper — ${label}`,
+    message: `Tool: ${toolName} — ${summary}`,
+    tags: [tag],
+    priority: 2,
+  });
+  await postJson(`${server}/`, payload).catch(() => {});
+}
+
 /** POST a JSON payload to a URL. Returns true on 2xx. */
 function postJson(url: string, body: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -190,6 +218,9 @@ export async function notifyAndWait(
   logDebug('notify: notification sent, waiting for response...', config);
   const result = await listener.promise;
   logDebug(`notify: response=${result}`, config);
+
+  await sendConfirmation(server, notify.topic, result, input.tool_name, summarizeInput(input));
+
   return result;
 }
 
@@ -229,5 +260,8 @@ export async function sendTestApproval(
     listener.cancel();
     return 'timeout';
   }
-  return listener.promise;
+
+  const result = await listener.promise;
+  await sendConfirmation(server, topic, result, 'Test', 'Setup verification');
+  return result;
 }
