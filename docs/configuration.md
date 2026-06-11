@@ -17,7 +17,7 @@ The config file is optional. All fields have sensible defaults.
   "model": "haiku",
   "confidenceThreshold": "high",
   "timeoutMs": 30000,
-  "maxContextLength": 2000,
+  "maxContextLength": 5000,
   "logFile": "~/.claude/claude-gatekeeper/decisions.log",
   "logLevel": "info",
   "alwaysEscalatePatterns": [],
@@ -56,8 +56,8 @@ Minimum confidence level required from the AI to auto-approve. The AI picks from
 ### `timeoutMs` (number, default: `30000`)
 Maximum time in milliseconds to wait for AI evaluation. Clamped to [1000, 60000]. If the AI doesn't respond in time, the request is escalated to the user (allow-or-ask) or denied (hands-free).
 
-### `maxContextLength` (number, default: `2000`)
-Maximum characters of CLAUDE.md content to include in the AI prompt. Longer values give the AI more context but increase latency and token usage.
+### `maxContextLength` (number, default: `5000`)
+Maximum characters of each context file (CLAUDE.md and GATEKEEPER_POLICY.md, global and project) to include in the AI prompt. Longer values give the AI more context but increase latency and token usage.
 
 ### `logFile` (string, default: `~/.claude/claude-gatekeeper/decisions.log`)
 Path to the audit log file. Supports `~` for home directory. The directory is created automatically if it doesn't exist.

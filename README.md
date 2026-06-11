@@ -164,7 +164,7 @@ Create `~/.claude/claude-gatekeeper/config.json` (all fields optional):
   "model": "haiku",
   "confidenceThreshold": "high",
   "timeoutMs": 30000,
-  "maxContextLength": 2000,
+  "maxContextLength": 5000,
   "logFile": "~/.claude/claude-gatekeeper/decisions.log",
   "logLevel": "info",
   "alwaysEscalatePatterns": [],
@@ -179,7 +179,7 @@ Create `~/.claude/claude-gatekeeper/config.json` (all fields optional):
 | `model` | `"haiku"` | Model name (used as-is for CLI, mapped for API) |
 | `confidenceThreshold` | `"high"` | Minimum confidence to auto-approve: `"none"`, `"low"`, `"medium"`, `"high"`, `"absolute"` |
 | `timeoutMs` | `30000` | Max time to wait for AI response |
-| `maxContextLength` | `2000` | Max chars of CLAUDE.md to include in prompt |
+| `maxContextLength` | `5000` | Max chars of each CLAUDE.md / GATEKEEPER_POLICY.md to include in prompt |
 | `logFile` | `~/.config/.../decisions.log` | Audit log file path |
 | `logLevel` | `"info"` | `"debug"`, `"info"`, or `"warn"` |
 | `alwaysEscalatePatterns` | (see below) | Wildcard patterns that always escalate |

@@ -21,7 +21,7 @@ const DEFAULT_CONFIG: ApproverConfig = {
   model: 'haiku',
   confidenceThreshold: 'high',
   timeoutMs: 90000,
-  maxContextLength: 2000,
+  maxContextLength: 5000,
   logFile: join(homedir(), '.claude', 'claude-gatekeeper', 'decisions.log'),
   logLevel: 'info',
   alwaysEscalatePatterns: [
