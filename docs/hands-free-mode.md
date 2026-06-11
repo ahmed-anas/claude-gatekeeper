@@ -57,12 +57,24 @@ Single boolean. Default `false` (supervised mode). Toggling this in config.json 
 
 ## Decision Flow
 
+### Interactive tools (questions) — short-circuited first
+
+`AskUserQuestion` (and any future question-only tool) is not an access request, so
+it never goes through static rules or AI evaluation. In hands-free mode the user
+is away, so Claude is told to decide for itself unless the choice is risky:
+
+```
+Interactive tool? -> hands-free -> write PreToolUse deny JSON with "decide yourself" guidance
+                  -> supervised -> exit 0 (let the user answer the question)
+```
+
 ### PreToolUse fires (every tool use)
 
 ```
 Parse stdin -> Is handsFree enabled?
   NO  -> exit 0, no output (pass through to PermissionRequest)
-  YES -> config -> static rules -> [AI] -> decision:
+  YES -> interactive tool? deny w/ guidance
+      -> config -> static rules -> [AI] -> decision:
            approve -> write PreToolUse allow JSON
            deny    -> write PreToolUse deny JSON with reason
 ```

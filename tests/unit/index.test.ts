@@ -36,7 +36,7 @@ import { checkPermissions } from '../../src/permissions';
 import { resolveProjectDir } from '../../src/project-dir';
 import { logDecision, logError } from '../../src/logger';
 import { notifyAndWait } from '../../src/notify';
-import { main, writePermissionApproval, writePreToolUseAllow, writePreToolUseDeny } from '../../src/index';
+import { main, writePermissionApproval, writePreToolUseAllow, writePreToolUseDeny, isInteractiveTool } from '../../src/index';
 
 const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
 const mockLoadConfig = loadConfig as jest.MockedFunction<typeof loadConfig>;
@@ -455,6 +455,100 @@ describe('main()', () => {
     // confidence 'medium' < threshold 'high' → escalate → notify
     expect(mockNotifyAndWait).toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+});
+
+describe('interactive tools (questions)', () => {
+  let stdoutSpy: jest.SpyInstance;
+  let exitSpy: jest.SpyInstance;
+
+  const askQuestionInput: HookInput = {
+    session_id: 'test',
+    cwd: '/project',
+    hook_event_name: 'PermissionRequest',
+    tool_name: 'AskUserQuestion',
+    tool_input: { questions: [{ question: 'Which approach?', options: ['a', 'b'] }] },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    exitSpy = jest.spyOn(process, 'exit').mockImplementation((() => {}) as any);
+    mockLoadConfig.mockReturnValue(defaultConfig);
+    mockCheckPermissions.mockReturnValue({ action: 'none' });
+  });
+
+  afterEach(() => {
+    stdoutSpy.mockRestore();
+    exitSpy.mockRestore();
+  });
+
+  it('classifies AskUserQuestion as interactive', () => {
+    expect(isInteractiveTool('AskUserQuestion')).toBe(true);
+    expect(isInteractiveTool('Bash')).toBe(false);
+  });
+
+  it('supervised mode: steps aside silently so the user answers the question', async () => {
+    mockReadFileSync.mockReturnValue(JSON.stringify(askQuestionInput));
+
+    await main();
+
+    // No output written — the user gets the question, not an auto-answer
+    expect(stdoutSpy).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    // Short-circuits before the whole evaluation pipeline — none of it runs
+    expect(mockCheckRules).not.toHaveBeenCalled();
+    expect(mockLoadContext).not.toHaveBeenCalled();
+    expect(mockBuildPrompt).not.toHaveBeenCalled();
+    expect(mockEvaluate).not.toHaveBeenCalled();
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+  });
+
+  it('supervised mode: does not notify for questions even when notify is configured', async () => {
+    mockReadFileSync.mockReturnValue(JSON.stringify(askQuestionInput));
+    mockLoadConfig.mockReturnValue({
+      ...defaultConfig,
+      notify: { topic: 'test-topic', server: 'https://ntfy.sh', timeoutMs: 5000 },
+    });
+
+    await main();
+
+    expect(mockNotifyAndWait).not.toHaveBeenCalled();
+    expect(stdoutSpy).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(0);
+  });
+
+  it('hands-free mode: denies with guidance to let Claude decide', async () => {
+    mockReadFileSync.mockReturnValue(JSON.stringify({
+      ...askQuestionInput,
+      hook_event_name: 'PreToolUse',
+    }));
+    mockLoadConfig.mockReturnValue({ ...defaultConfig, mode: 'hands-free' as const });
+
+    await main();
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
+    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('away');
+    // Uses the clean question guidance, NOT the generic command-deny boilerplate
+    expect(output.hookSpecificOutput.permissionDecisionReason).not.toContain('Claude Gatekeeper');
+    // No AI evaluation needed for a question
+    expect(mockEvaluate).not.toHaveBeenCalled();
+  });
+
+  it('hands-free mode: denies with guidance even when hook is PermissionRequest', async () => {
+    // hands-free registers both hooks; a question must never silently slip through
+    mockReadFileSync.mockReturnValue(JSON.stringify(askQuestionInput)); // PermissionRequest
+    mockLoadConfig.mockReturnValue({ ...defaultConfig, mode: 'hands-free' as const });
+
+    await main();
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
+    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('away');
+    expect(mockEvaluate).not.toHaveBeenCalled();
   });
 });
 
