@@ -26,6 +26,40 @@ import { resolveProjectDir } from './project-dir';
 
 const DENY_PREFIX = 'This is an automated deny by Claude Gatekeeper. The user is currently away and has delegated the AI gatekeeper to allow/deny commands.';
 
+/**
+ * Tools that ask the user a question or to pick an option, rather than
+ * requesting access to a resource. These are NOT access requests, so the
+ * gatekeeper must never auto-answer them on the user's behalf in supervised
+ * mode — the human should answer them directly.
+ */
+const INTERACTIVE_TOOLS = new Set(['AskUserQuestion']);
+
+export function isInteractiveTool(toolName: string): boolean {
+  return INTERACTIVE_TOOLS.has(toolName);
+}
+
+/**
+ * Guidance returned to Claude when it asks the user a question while the user
+ * is away (hands-free mode). There is no human to answer, so Claude is told to
+ * decide for itself unless the choice carries real risk.
+ */
+const AWAY_QUESTION_GUIDANCE =
+  'The user is away and cannot answer questions right now. Do not wait for input. ' +
+  "Choose the option that best fits the context and the user's intent, and continue. " +
+  'If every option carries meaningful risk and there is no safe default, skip the optional ' +
+  'step if you can, otherwise stop and end your turn rather than guessing.';
+
+export function writePreToolUseDenyQuestion(reason: string): void {
+  const output: PreToolUseOutput = {
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'deny',
+      permissionDecisionReason: reason,
+    },
+  };
+  process.stdout.write(JSON.stringify(output));
+}
+
 export function readStdin(): string {
   return readFileSync(0, 'utf-8').trim();
 }
@@ -124,6 +158,34 @@ export async function main(): Promise<void> {
 
   const hookType = input.hook_event_name;
   const mode = config.mode;
+
+  // Interactive tools (e.g. AskUserQuestion) are NOT access requests — they ask
+  // the user to choose an option. The gatekeeper must never answer them for the
+  // user. In supervised mode, step aside silently so the human answers. In
+  // hands-free mode there is no human, so tell Claude to decide for itself.
+  if (isInteractiveTool(input.tool_name)) {
+    if (mode === 'hands-free' && hookType === 'PreToolUse') {
+      logDecision(input, {
+        decision: 'deny',
+        confidence: 'absolute',
+        reasoning: 'Interactive question while user is away — instructed Claude to decide',
+        model: 'static',
+        latencyMs: 0,
+      }, config);
+      writePreToolUseDenyQuestion(AWAY_QUESTION_GUIDANCE);
+    } else {
+      // Supervised: do nothing — let the user answer the question directly.
+      logDecision(input, {
+        decision: 'escalate',
+        confidence: 'absolute',
+        reasoning: 'Interactive question — left for the user to answer',
+        model: 'static',
+        latencyMs: 0,
+      }, config);
+      process.exit(0);
+    }
+    return;
+  }
 
   // Check the user's Claude Code permission lists (allow/deny/ask).
   // PreToolUse fires before Claude's own permission check, so we replicate it.
