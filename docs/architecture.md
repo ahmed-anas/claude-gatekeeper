@@ -37,6 +37,15 @@ Claude Gatekeeper is a Claude Code **PermissionRequest hook**. When Claude Code 
                     └────────────┬─────────────┘
                                  │
                     ┌────────────▼─────────────┐
+                    │  Interactive tool?        │
+                    │  (e.g. AskUserQuestion)   │
+                    │  Not an access request —  │
+                    │  supervised: exit 0 (user │
+                    │  answers); hands-free:    │
+                    │  deny w/ "decide yourself"│
+                    └────────────┬─────────────┘
+                                 │ (not interactive)
+                    ┌────────────▼─────────────┐
                     │  Check static rules       │
                     │  (rules.ts)               │
                     │  alwaysEscalate patterns  │

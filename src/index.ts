@@ -46,8 +46,8 @@ export function isInteractiveTool(toolName: string): boolean {
 const AWAY_QUESTION_GUIDANCE =
   'The user is away and cannot answer questions right now. Do not wait for input. ' +
   "Choose the option that best fits the context and the user's intent, and continue. " +
-  'If every option carries meaningful risk and there is no safe default, skip the optional ' +
-  'step if you can, otherwise stop and end your turn rather than guessing.';
+  'If no option is clearly safe and guessing could cause harm or a hard-to-reverse change, ' +
+  'skip the step if it is optional, otherwise stop and end your turn rather than guessing.';
 
 export function writePreToolUseDenyQuestion(reason: string): void {
   const output: PreToolUseOutput = {
@@ -163,8 +163,10 @@ export async function main(): Promise<void> {
   // the user to choose an option. The gatekeeper must never answer them for the
   // user. In supervised mode, step aside silently so the human answers. In
   // hands-free mode there is no human, so tell Claude to decide for itself.
+  // (Like handleEscalation, hands-free always emits a PreToolUse deny — that is
+  // the hook event hands-free mode acts on; PermissionRequest can't carry a deny.)
   if (isInteractiveTool(input.tool_name)) {
-    if (mode === 'hands-free' && hookType === 'PreToolUse') {
+    if (mode === 'hands-free') {
       logDecision(input, {
         decision: 'deny',
         confidence: 'absolute',

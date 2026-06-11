@@ -496,7 +496,10 @@ describe('interactive tools (questions)', () => {
     // No output written — the user gets the question, not an auto-answer
     expect(stdoutSpy).not.toHaveBeenCalled();
     expect(exitSpy).toHaveBeenCalledWith(0);
-    // Never runs AI evaluation or notify for a question
+    // Short-circuits before the whole evaluation pipeline — none of it runs
+    expect(mockCheckRules).not.toHaveBeenCalled();
+    expect(mockLoadContext).not.toHaveBeenCalled();
+    expect(mockBuildPrompt).not.toHaveBeenCalled();
     expect(mockEvaluate).not.toHaveBeenCalled();
     expect(mockNotifyAndWait).not.toHaveBeenCalled();
   });
@@ -528,7 +531,23 @@ describe('interactive tools (questions)', () => {
     const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
     expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
     expect(output.hookSpecificOutput.permissionDecisionReason).toContain('away');
+    // Uses the clean question guidance, NOT the generic command-deny boilerplate
+    expect(output.hookSpecificOutput.permissionDecisionReason).not.toContain('Claude Gatekeeper');
     // No AI evaluation needed for a question
+    expect(mockEvaluate).not.toHaveBeenCalled();
+  });
+
+  it('hands-free mode: denies with guidance even when hook is PermissionRequest', async () => {
+    // hands-free registers both hooks; a question must never silently slip through
+    mockReadFileSync.mockReturnValue(JSON.stringify(askQuestionInput)); // PermissionRequest
+    mockLoadConfig.mockReturnValue({ ...defaultConfig, mode: 'hands-free' as const });
+
+    await main();
+
+    expect(stdoutSpy).toHaveBeenCalledTimes(1);
+    const output = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(output.hookSpecificOutput.permissionDecision).toBe('deny');
+    expect(output.hookSpecificOutput.permissionDecisionReason).toContain('away');
     expect(mockEvaluate).not.toHaveBeenCalled();
   });
 });

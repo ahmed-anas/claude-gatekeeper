@@ -32,6 +32,10 @@ export function summarizeInput(input: HookInput): string {
   if (input.tool_name === 'WebFetch') {
     return String(input.tool_input.url || '');
   }
+  if (input.tool_name === 'AskUserQuestion') {
+    const questions = input.tool_input.questions as Array<{ question?: string }> | undefined;
+    return String(questions?.[0]?.question || '').slice(0, 120);
+  }
   return JSON.stringify(input.tool_input).slice(0, 120);
 }
 

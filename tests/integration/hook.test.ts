@@ -185,6 +185,36 @@ describe('E2E: Claude Gatekeeper', () => {
   });
 
   // -----------------------------------------------------------------------
+  // 2b. Interactive tools (questions) — never auto-answered
+  // -----------------------------------------------------------------------
+
+  describe('interactive tools (questions)', () => {
+    const questionInput = { questions: [{ question: 'Which approach?', options: ['a', 'b'] }] };
+
+    it('supervised mode: silently escalates AskUserQuestion so the user answers', async () => {
+      expectEscalation(await runHook(payload('AskUserQuestion', questionInput)));
+    });
+
+    it('hands-free mode: denies AskUserQuestion with away guidance, no AI call', async () => {
+      const result = await runWithAI(
+        JSON.stringify({
+          session_id: 'e2e-test',
+          cwd: '/home/dev/project',
+          hook_event_name: 'PreToolUse',
+          tool_name: 'AskUserQuestion',
+          tool_input: questionInput,
+        }),
+        'approve_high', // AI behavior is irrelevant — it must never be consulted
+        { mode: 'hands-free' }
+      );
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.stdout);
+      expect(parsed.hookSpecificOutput.permissionDecision).toBe('deny');
+      expect(parsed.hookSpecificOutput.permissionDecisionReason).toContain('away');
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // 3. Full AI evaluation pipeline (nothing mocked in-process)
   //
   //    A fake `claude` CLI returns controlled responses. The hook runs the
